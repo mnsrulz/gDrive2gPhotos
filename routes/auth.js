@@ -28,7 +28,6 @@ router.get('/google',
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/' }),
   function (req, res) {
-    debugger;
     res.redirect('/index');
   });
 

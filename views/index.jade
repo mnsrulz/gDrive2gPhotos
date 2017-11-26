@@ -3,4 +3,19 @@ extends layout
 block content
   h1= title
   p Welcome to #{title}
-  a(href="http://www.google.com/") Sign In
+  table
+    thead
+      tr
+        th= "Thumb"
+        th= "File Name"
+    tbody
+      each o in files
+        tr
+          td
+            img(src= o.thumbnailLink)
+          td
+            div
+              span= o.name
+              br
+              span= o.size
+              
