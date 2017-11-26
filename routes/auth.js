@@ -4,7 +4,7 @@ var passport = require('passport');
 var GoogleStrategy = require('passport-google-oauth2').Strategy;
 var oauthConfig = require('../oauthConfig');
 
-var gauthconfig = oauth.google;
+var gauthconfig = oauthConfig.google;
 
 passport.use(new GoogleStrategy({
   clientID: gauthconfig.clientID,
