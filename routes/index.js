@@ -2,13 +2,15 @@ var express = require('express');
 var router = express.Router();
 var google = require('googleapis');
 var googleAuth = require('google-auth-library');
-var oauth=require('../oauth');
+var oauthConfig=require('../oauthConfig');
 var service = google.drive('v3');
+
+var gauthconfig = oauthConfig.google;
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
   var auth = new googleAuth();
-  var oauth2Client = new auth.OAuth2(oauth.clientID, oauth.clientSecret, oauth.callbackURL);
+  var oauth2Client = new auth.OAuth2(gauthconfig.clientID, gauthconfig.clientSecret, gauthconfig.callbackURL);
   oauth2Client.credentials=req.user.token;
 
   service.files.list({
