@@ -8,6 +8,7 @@ block content
       tr
         th= "Thumb"
         th= "File Name"
+        th= "Transfer"
     tbody
       each o in files
         tr
@@ -18,4 +19,6 @@ block content
               span= o.name
               br
               span= o.size
+          td
+            a(href="/index/transfer/"+o.id) Transfer
               
