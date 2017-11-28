@@ -1,5 +1,3 @@
-import { clearInterval } from 'timers';
-
 var express = require('express');
 var router = express.Router();
 var google = require('googleapis');
@@ -76,7 +74,12 @@ router.get('/transfer/:fileid', function (req, res, next) {
     });
 
     var interval = setInterval(function () {
-      console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);
+      try {
+        console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);  
+      } catch (error) {
+        //do nothing..
+      }
+      
     }, 500);
 
     var bytes = 0;
@@ -89,7 +92,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
       console.log('Done');
     }).on('data', function (chunk) {
       bytes += chunk.length;
-      console.log('Progress' + (bytes) + '/' + response.size);
+      //console.log('Progress' + (bytes) + '/' + response.size);
     })
       .on('error', function (err) {
         clearInterval(interval);
