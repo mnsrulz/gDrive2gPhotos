@@ -23,7 +23,7 @@ passport.use(new GoogleStrategy({
 ));
 
 router.get('/google',
-  passport.authenticate('google', { successRedirect: '/', scope: ['email', 'https://www.googleapis.com/auth/drive'] }));
+  passport.authenticate('google', { successRedirect: '/', scope: ['email', 'https://www.googleapis.com/auth/drive', 'https://picasaweb.google.com/data/', 'https://photos.googleapis.com/data/'] }));
 
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/' }),
