@@ -74,7 +74,12 @@ router.get('/transfer/:fileid', function (req, res, next) {
     });
 
     var interval = setInterval(function () {
-      console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);
+      try {
+        console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);  
+      } catch (error) {
+        //do nothing..
+      }
+      
     }, 500);
 
     var bytes = 0;
