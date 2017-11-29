@@ -16,6 +16,7 @@
     "googleapis": "^22.2.0",
     "jade": "~1.11.0",
     "morgan": "~1.9.0",
+    "node-uuid": "^1.4.8",
     "passport": "^0.4.0",
     "passport-google-oauth2": "^0.1.6",
     "serve-favicon": "~2.4.5",
