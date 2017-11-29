@@ -77,15 +77,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
 
     var bytes = 0;
     var tmpfilename = path.join(__dirname, uuid.v4() + '.tmp');
-    var tmpfilestream = fs.createWriteStream(tmpfilename);
-    var putrequest = request.put(photoCreateResponse.headers.location, {
-      headers: {
-        'Content-Length': response.size,
-        'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-        'Expect': ''
-      }
-    });
-
+    
     var googleFileRequest = service.files.get({
       auth: oauth2Client,
       fileId: fileId,
@@ -104,12 +96,21 @@ router.get('/transfer/:fileid', function (req, res, next) {
         clearInterval(interval);
         console.log('Error during download', err);
       })
-      .pipe(tmpfilestream);
+      .pipe(fs.createWriteStream(tmpfilename));
 
     function uploadfromfs() {
+      var putrequest = request.put(photoCreateResponse.headers.location, {
+        headers: {
+          'Content-Length': response.size,
+          'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
+          'Expect': ''
+        }
+      });
+  
       fs.createReadStream(tmpfilename)
         .on('end', function () {
-          console.log('File read end reached...');
+          console.log('File read end reached... Ending the request...');
+          putrequest.end();
         })
         .pipe(putrequest);
     }
@@ -117,26 +118,26 @@ router.get('/transfer/:fileid', function (req, res, next) {
     //putrequest.body=googleFileRequest;
     //putrequest.end();
 
-    putrequest.on('end', function () {
-      clearInterval(interval);
-      //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
-    });
-    putrequest.on('error', function () {
-      clearInterval(interval);
-      //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
-    });
+    // putrequest.on('end', function () {
+    //   clearInterval(interval);
+    //   //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
+    // });
+    // putrequest.on('error', function () {
+    //   clearInterval(interval);
+    //   //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
+    // });
 
     // putrequest.on('drain', function () {
     //   //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
     // });
 
-    var interval = setInterval(function () {
-      try {
-        console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);
-      } catch (error) {
-        //do nothing..
-      }
-    }, 500);
+    // var interval = setInterval(function () {
+    //   try {
+    //     console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);
+    //   } catch (error) {
+    //     //do nothing..
+    //   }
+    // }, 500);
 
 
     res.end("Queued..." + tmpfilename);
