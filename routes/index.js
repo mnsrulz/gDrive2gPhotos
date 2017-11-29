@@ -85,7 +85,8 @@ router.get('/transfer/:fileid', function (req, res, next) {
       headers: {
         'Content-Length': response.size,
         'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-        'Expect': ''
+        'Expect': '',
+        'Transfer-Encoding': 'chunked'
       }
     });
 putrequest.body=googleFileRequest;
