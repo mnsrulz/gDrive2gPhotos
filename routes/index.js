@@ -61,6 +61,26 @@ router.get('/transfer/:fileid', function (req, res, next) {
       }
     });
 
+    var bytes = 0;
+    var googleFileRequest= service.files.get({
+       auth: oauth2Client,
+       fileId: fileId,
+       alt: 'media'
+     })
+     .on('end', function () {
+       clearInterval(interval);
+       console.log('Done');
+     })
+     .on('data', function (chunk) {
+       bytes += chunk.length;
+       //console.log('Progress' + (bytes) + '/' + response.size);
+     })
+       .on('error', function (err) {
+         clearInterval(interval);
+         console.log('Error during download', err);
+       });
+     //   .pipe(putrequest);
+ 
     var putrequest = request.put(photoCreateResponse.headers.location, {
       headers: {
         'Content-Length': response.size,
@@ -68,10 +88,21 @@ router.get('/transfer/:fileid', function (req, res, next) {
         'Expect': ''
       }
     });
+putrequest.body=googleFileRequest;
+//putrequest.end();
 
-    putrequest.on('drain', function () {
+putrequest.on('end', function () {
+    clearInterval(interval);
       //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
     });
+    putrequest.on('error', function () {
+      clearInterval(interval);
+      //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
+    });
+
+    // putrequest.on('drain', function () {
+    //   //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
+    // });
 
     var interval = setInterval(function () {
       try {
@@ -79,27 +110,9 @@ router.get('/transfer/:fileid', function (req, res, next) {
       } catch (error) {
         //do nothing..
       }
-      
     }, 500);
 
-    var bytes = 0;
-    service.files.get({
-      auth: oauth2Client,
-      fileId: fileId,
-      alt: 'media'
-    }).on('end', function () {
-      clearInterval(interval);
-      console.log('Done');
-    }).on('data', function (chunk) {
-      bytes += chunk.length;
-      //console.log('Progress' + (bytes) + '/' + response.size);
-    })
-      .on('error', function (err) {
-        clearInterval(interval);
-        console.log('Error during download', err);
-      })
-      .pipe(putrequest);
-
+   
     res.end("Queued...");
   });
 });
