@@ -6,6 +6,9 @@ var oauthConfig = require('../oauthConfig');
 var service = google.drive('v3');
 var axios = require('axios');
 var request = require('request');
+var fs = require('fs');
+var path = require('path');
+var uuid=require('uuid');
 
 var gauthconfig = oauthConfig.google;
 
@@ -33,6 +36,17 @@ router.get('/', function (req, res, next) {
     }
   });
 });
+
+router.get('/temp', function (req, res, next) {
+
+  fs.readdir(__dirname, function (err, items) {
+    res.end('Error: ' + JSON.stringify(err) + ', Items: ' +JSON.stringify(items));
+    // for (var i=0; i<items.length; i++) {
+    //   console.log(items[i]);
+    // }
+  });
+
+})
 
 router.get('/transfer/:fileid', function (req, res, next) {
   var oauth2Client = getAuth(req);
@@ -62,38 +76,49 @@ router.get('/transfer/:fileid', function (req, res, next) {
     });
 
     var bytes = 0;
-    var googleFileRequest= service.files.get({
-       auth: oauth2Client,
-       fileId: fileId,
-       alt: 'media'
-     })
-     .on('end', function () {
-       clearInterval(interval);
-       console.log('Done');
-     })
-     .on('data', function (chunk) {
-       bytes += chunk.length;
-       //console.log('Progress' + (bytes) + '/' + response.size);
-     })
-       .on('error', function (err) {
-         clearInterval(interval);
-         console.log('Error during download', err);
-       });
-     //   .pipe(putrequest);
- 
+    var tmpfilename = path.join(__dirname, uuid.v4() + '.tmp');
+    var tmpfilestream = fs.createWriteStream(tmpfilename);
     var putrequest = request.put(photoCreateResponse.headers.location, {
       headers: {
         'Content-Length': response.size,
         'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-        'Expect': '',
-        'Transfer-Encoding': 'chunked'
+        'Expect': ''
       }
     });
-putrequest.body=googleFileRequest;
-//putrequest.end();
 
-putrequest.on('end', function () {
-    clearInterval(interval);
+    var googleFileRequest = service.files.get({
+      auth: oauth2Client,
+      fileId: fileId,
+      alt: 'media'
+    })
+      .on('end', function () {
+        //clearInterval(interval);
+        console.log('Download Done, now uploading...');
+        uploadfromfs();
+      })
+      .on('data', function (chunk) {
+        bytes += chunk.length;
+        console.log('Download Progress' + (bytes) + '/' + response.size);
+      })
+      .on('error', function (err) {
+        clearInterval(interval);
+        console.log('Error during download', err);
+      })
+      .pipe(tmpfilestream);
+
+    function uploadfromfs() {
+      fs.createReadStream(tmpfilename)
+        .on('end', function () {
+          console.log('File read end reached...');
+        })
+        .pipe(putrequest);
+    }
+
+    //putrequest.body=googleFileRequest;
+    //putrequest.end();
+
+    putrequest.on('end', function () {
+      clearInterval(interval);
       //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
     });
     putrequest.on('error', function () {
@@ -107,14 +132,14 @@ putrequest.on('end', function () {
 
     var interval = setInterval(function () {
       try {
-        console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);  
+        console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);
       } catch (error) {
         //do nothing..
       }
     }, 500);
 
-   
-    res.end("Queued...");
+
+    res.end("Queued..." + tmpfilename);
   });
 });
 
