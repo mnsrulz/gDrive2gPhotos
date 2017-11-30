@@ -101,7 +101,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
     })
     .on('unpipe',function(){
       console.log('someone stopped writing...');
-      clearInterval();
+      clearInterval(interval);
     });
 
 /*
