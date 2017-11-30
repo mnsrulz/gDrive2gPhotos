@@ -41,7 +41,17 @@ router.get('/', function (req, res, next) {
 router.get('/temp', function (req, res, next) {
 
   fs.readdir(__dirname, function (err, items) {
-    res.end('Error: ' + JSON.stringify(err) + ', Items: ' + JSON.stringify(items));
+
+
+    const response = [];
+    for (let file of items) {
+      const extension = path.extname(file);
+      const fileSizeInBytes = fs.statSync(file).size;
+      response.push({ name: file, extension, fileSizeInBytes });
+    }
+
+    res.end('Error: ' + JSON.stringify(err) + ', Items: ' + JSON.stringify(response));
+    //res.end('Error: ' + JSON.stringify(err) + ', Items: ' + JSON.stringify(items));
     // for (var i=0; i<items.length; i++) {
     //   console.log(items[i]);
     // }
@@ -78,11 +88,18 @@ router.get('/transfer/:fileid', function (req, res, next) {
 
     var bytes = 0;var readbytes=0;
     var tmpfilename = path.join(__dirname, uuid.v4() + '.tmp');
-    var writestream=fs.createWriteStream(tmpfilename).on('finish',function(){
+    var writestream=fs.createWriteStream(tmpfilename)
+    .on('finish',function(){
       console.log('finished writing...');
       setTimeout(() => {
-        uploadfromfs();   
+        //uploadfromfs();   
       }, 1000);
+    })
+    .on('pipe',function(){
+      console.log('someone writing...');
+    })
+    .on('unpipe',function(){
+      console.log('someone stopped writing...');
     });
     var googleFileRequest = service.files.get({
       auth: oauth2Client,
