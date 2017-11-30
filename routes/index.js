@@ -9,6 +9,7 @@ var request = require('request');
 var fs = require('fs');
 var path = require('path');
 var uuid = require('uuid');
+var got=require('got');
 
 var gauthconfig = oauthConfig.google;
 
@@ -107,13 +108,14 @@ router.get('/transfer/:fileid', function (req, res, next) {
       .pipe(fs.createWriteStream(tmpfilename));
 
     function uploadfromfs() {
-      var putrequest = request.put(photoCreateResponse.headers.location, {
-        headers: {
-          'Content-Length': response.size,
-          'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-          'Expect': ''
-        }
-      });
+      
+      // var putrequest = request.put(photoCreateResponse.headers.location, {
+      //   headers: {
+      //     'Content-Length': response.size,
+      //     'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
+      //     'Expect': ''
+      //   }
+      // });
 
       fs.createReadStream(tmpfilename)
         .on('end', function () {
@@ -132,7 +134,13 @@ router.get('/transfer/:fileid', function (req, res, next) {
             console.log('error occurred on data. createReadStream');
           }
         })
-        .pipe(putrequest);
+        .pipe(got.stream.put(photoCreateResponse.headers.location, {
+          headers: {
+            'Content-Length': response.size,
+            'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
+            'Expect': ''
+          }
+        }));
     }
 
    var interval= setInterval(function () {
