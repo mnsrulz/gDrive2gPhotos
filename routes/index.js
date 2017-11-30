@@ -89,7 +89,10 @@ router.get('/transfer/:fileid', function (req, res, next) {
          
         //clearInterval(interval);
         console.log('Download Done, now uploading...');
-        uploadfromfs(); 
+        setTimeout(() => {
+          uploadfromfs();   
+        }, 1000);
+        
         } catch (error) {
           console.log('error occurred at end.googleFileRequest ');
         }
@@ -125,13 +128,6 @@ router.get('/transfer/:fileid', function (req, res, next) {
           //putrequest.end(); 
           } catch (error) {
             console.log('error occurred on end. fscreatereadstream');
-          }
-        })
-        .on('data',function(chunk){
-          try {
-            readbytes += chunk.length;
-          } catch (error) {
-            console.log('error occurred on data. createReadStream');
           }
         })
         .pipe(got.stream.put(photoCreateResponse.headers.location, {
