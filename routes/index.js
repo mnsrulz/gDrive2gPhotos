@@ -143,6 +143,10 @@ router.get('/transfer/:fileid', function (req, res, next) {
           downloadUploadProgress[requestId].lastUpdate = new Date();
           console.log('Upload request response recvd.');
           console.log('Status Code: ' + whateverresponse.statusCode);
+        }).on('error',function(requestUploadErr){
+          console.log('error occurred while uploading file.. ' + requestUploadErr);
+          clearInterval(interval);
+          downloadUploadProgress[requestId].status="Error occurred: " + requestUploadErr;
         }));
       });
 
