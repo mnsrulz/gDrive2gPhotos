@@ -134,6 +134,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
         }
       })
       .on('response', function (gotresponseinner) {
+        gotreadstream.pause();
         debugger;
         got.stream(photoCreateResponse.headers.location, {
           method: "PUT",
@@ -149,7 +150,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
             if(readbytes==response.size) {
               console.log('End of file reached for this request...time to end request');
               clearInterval();
-              uploadRequest.end();
+              //uploadRequest.end();
             }
           },500);
           console.log('Upload request initiated...');
