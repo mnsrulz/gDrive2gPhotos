@@ -75,7 +75,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
       }
     });
 
-    var bytes = 0;
+    var bytes = 0;var readbytes=0;
     var tmpfilename = path.join(__dirname, uuid.v4() + '.tmp');
 
     var googleFileRequest = service.files.get({
@@ -119,16 +119,23 @@ router.get('/transfer/:fileid', function (req, res, next) {
         .on('end', function () {
           try {
           console.log('File read end reached... Ending the request...');
-          putrequest.end(); 
+          //putrequest.end(); 
           } catch (error) {
             console.log('error occurred on end. fscreatereadstream');
+          }
+        })
+        .on('data',function(chunk){
+          try {
+            readbytes += chunk.length;
+          } catch (error) {
+            console.log('error occurred on data. createReadStream');
           }
         })
         .pipe(putrequest);
     }
 
    var interval= setInterval(function () {
-      console.log('Download Progress' + (bytes) + '/' + response.size);
+      console.log('Download Progress' + (bytes) + '/' + response.size + ', Upload Progress: ' + readbytes);
     }, 1000);
 
     //putrequest.body=googleFileRequest;
