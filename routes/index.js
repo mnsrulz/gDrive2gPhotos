@@ -8,7 +8,7 @@ var axios = require('axios');
 var request = require('request');
 var fs = require('fs');
 var path = require('path');
-var uuid=require('uuid');
+var uuid = require('uuid');
 
 var gauthconfig = oauthConfig.google;
 
@@ -40,7 +40,7 @@ router.get('/', function (req, res, next) {
 router.get('/temp', function (req, res, next) {
 
   fs.readdir(__dirname, function (err, items) {
-    res.end('Error: ' + JSON.stringify(err) + ', Items: ' +JSON.stringify(items));
+    res.end('Error: ' + JSON.stringify(err) + ', Items: ' + JSON.stringify(items));
     // for (var i=0; i<items.length; i++) {
     //   console.log(items[i]);
     // }
@@ -60,7 +60,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
     var pathToAlbum = 'https://photos.googleapis.com/data/upload/resumable/media/create-session/feed/api/user/default/albumid/6490558908293625281';
 
     //do we need to update teh filename in  this...
-    var photoCreateBody = '<?xml version="1.0" encoding="UTF-8"?><entry xmlns="http://www.w3.org/2005/Atom" xmlns:gphoto="http://schemas.google.com/photos/2007"><category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/photos/2007#photo"/><title>' + response.name + '</title><gphoto:timestamp>1475517389000</gphoto:timestamp></entry>';
+    var photoCreateBody = '<?xml version="1.0" encoding="UTF-8"?><entry xmlns="http://www.w3.org/2005/Atom" xmlns:gphoto="http://schemas.google.com/photos/2007"><category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/photos/2007#photo"/><title>' + 'GP_'+ response.name + '</title><gphoto:timestamp>1475517389000</gphoto:timestamp></entry>';
 
     var photoCreateResponse = await axios.post(pathToAlbum, photoCreateBody, {
       headers: {
@@ -68,7 +68,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
         'Content-Type': 'application/atom+xml; charset=utf-8',
         'X-Upload-Content-Length': response.size,
         'X-Upload-Content-Type': response.mimeType,
-        'Slug': response.name,
+        'Slug': 'GP_'+response.name,
         'X-Forwarded-By': 'me',
         'data-binary': '@-',
         'GData-Version': '3'
@@ -77,20 +77,28 @@ router.get('/transfer/:fileid', function (req, res, next) {
 
     var bytes = 0;
     var tmpfilename = path.join(__dirname, uuid.v4() + '.tmp');
-    
+
     var googleFileRequest = service.files.get({
       auth: oauth2Client,
       fileId: fileId,
       alt: 'media'
     })
       .on('end', function () {
-        //clearInterval(interval);
+        try {
+         
+        clearInterval(interval);
         console.log('Download Done, now uploading...');
-        uploadfromfs();
+        uploadfromfs(); 
+        } catch (error) {
+          console.log('error occurred at end.googleFileRequest ');
+        }
       })
       .on('data', function (chunk) {
-        bytes += chunk.length;
-        console.log('Download Progress' + (bytes) + '/' + response.size);
+        try {
+          bytes += chunk.length;
+        } catch (error) {
+          console.log('error occurred on data. googleFileRequest');
+        }
       })
       .on('error', function (err) {
         clearInterval(interval);
@@ -106,14 +114,22 @@ router.get('/transfer/:fileid', function (req, res, next) {
           'Expect': ''
         }
       });
-  
+
       fs.createReadStream(tmpfilename)
         .on('end', function () {
+          try {
           console.log('File read end reached... Ending the request...');
-          putrequest.end();
+          putrequest.end(); 
+          } catch (error) {
+            console.log('error occurred on end. fscreatereadstream');
+          }
         })
         .pipe(putrequest);
     }
+
+   var interval= setInterval(function () {
+      console.log('Download Progress' + (bytes) + '/' + response.size);
+    }, 1000);
 
     //putrequest.body=googleFileRequest;
     //putrequest.end();
