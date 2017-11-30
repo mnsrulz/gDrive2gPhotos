@@ -144,6 +144,9 @@ router.get('/transfer/:fileid', function (req, res, next) {
           },
           body: gotresponseinner
         }).on('request', function (uploadRequest) {
+          setInterval(function(){
+            readbytes=(uploadRequest.connection.bytesWritten);
+          },500);
           console.log('Upload request initiated...');
           gotreadstream.resume();
         }).on('response', function () {
