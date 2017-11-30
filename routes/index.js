@@ -13,6 +13,8 @@ var got = require('got');
 
 var gauthconfig = oauthConfig.google;
 
+var downloadUploadProgress = [];
+
 function getAuth(req) {
   var auth = new googleAuth();
   var oauth2Client = new auth.OAuth2(gauthconfig.clientID, gauthconfig.clientSecret, gauthconfig.callbackURL);
@@ -59,6 +61,11 @@ router.get('/temp', function (req, res, next) {
 
 })
 
+router.get('/progress/:requestid', function (req, res, next) {
+  var requestId = req.params.requestid;
+  res.end(JSON.stringify(downloadUploadProgress[requestId]));
+});
+
 router.get('/transfer/:fileid', function (req, res, next) {
   var oauth2Client = getAuth(req);
   var fileId = req.params.fileid;
@@ -85,8 +92,11 @@ router.get('/transfer/:fileid', function (req, res, next) {
         'GData-Version': '3'
       }
     });
+    var requestId = uuid.v4();
+    var requestRecvdTime = new Date();
+    downloadUploadProgress[requestId] = {};
 
-    var bytes = 0; var readbytes = 0;
+    var bytesReceived = 0; var readbytes = 0;
 
     /*
     https://www.googleapis.com/drive/v3/files/FILEID?alt=media
@@ -101,7 +111,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
     })
       .on('data', function (chunk) {
         try {
-          bytes += chunk.length;
+          bytesReceived += chunk.length;
         } catch (error) {
           console.log('error occurred on data. got response');
         }
@@ -122,23 +132,20 @@ router.get('/transfer/:fileid', function (req, res, next) {
           var initRequestBytesWritten = uploadRequest.connection.bytesWritten;
           var interval = setInterval(function () {
             var actualDataBytesWritten = (uploadRequest.connection.bytesWritten - initRequestBytesWritten);
-            console.log('Download Progress' + (bytes) + '/' + response.size + ', Upload Progress: ' + actualDataBytesWritten);
-            if (actualDataBytesWritten >= response.size) {
-              console.log('End of file reached for this request...time to end request');
-              clearInterval(interval);
-            }
+            downloadUploadProgress[requestId] = { requestTime: requestRecvdTime, recvd: bytesReceived, sent: actualDataBytesWritten, lastUpdate: new Date() };
+            console.log('Download Progress' + (bytesReceived) + '/' + response.size + ', Upload Progress: ' + actualDataBytesWritten);
           }, 500);
         }).on('response', function (whateverresponse) {
+          clearInterval(interval);
+          downloadUploadProgress[requestId].requestTime = requestRecvdTime;
+          downloadUploadProgress[requestId].status = "Completed";
+          downloadUploadProgress[requestId].lastUpdate = new Date();
           console.log('Upload request response recvd.');
-          try {
-            console.log(JSON.stringify(whateverresponse));
-          } catch (error) {
-            console.log('error while jsoning response...');
-          }
+          console.log('Status Code: ' + whateverresponse.statusCode);
         }));
       });
 
-    res.end("Queued...");
+    res.redirect('../progress/'+ requestId);
   });
 });
 
