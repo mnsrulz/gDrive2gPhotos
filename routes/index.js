@@ -86,7 +86,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
       .on('end', function () {
         try {
          
-        clearInterval(interval);
+        //clearInterval(interval);
         console.log('Download Done, now uploading...');
         uploadfromfs(); 
         } catch (error) {
@@ -119,6 +119,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
         .on('end', function () {
           try {
           console.log('File read end reached... Ending the request...');
+          clearInterval(interval);
           //putrequest.end(); 
           } catch (error) {
             console.log('error occurred on end. fscreatereadstream');
