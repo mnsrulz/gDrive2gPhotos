@@ -128,7 +128,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
         try {
          
         console.log('Download request completed');
-          clearInterval(interval);        
+          //clearInterval(interval);        
         } catch (error) {
           
         }
@@ -146,6 +146,11 @@ router.get('/transfer/:fileid', function (req, res, next) {
         }).on('request', function (uploadRequest) {
           setInterval(function(){
             readbytes=(uploadRequest.connection.bytesWritten);
+            if(readbytes==response.size) {
+              console.log('End of file reached for this request...time to end request');
+              clearInterval();
+              uploadRequest.end();
+            }
           },500);
           console.log('Upload request initiated...');
           gotreadstream.resume();
