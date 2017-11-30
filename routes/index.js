@@ -46,7 +46,7 @@ router.get('/temp', function (req, res, next) {
     const response = [];
     for (let file of items) {
       const extension = path.extname(file);
-      const fileSizeInBytes = fs.statSync(file).size;
+      const fileSizeInBytes = fs.statSync(path.join(__dirname,file)).size;
       response.push({ name: file, extension, fileSizeInBytes });
     }
 
@@ -93,7 +93,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
     .on('finish',function(){
       console.log('finished writing...');
       setTimeout(() => {
-        //uploadfromfs();   
+        uploadfromfs();   
       }, 1000);
     })
     .on('pipe',function(){
@@ -101,7 +101,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
     })
     .on('unpipe',function(){
       console.log('someone stopped writing...');
-      clearInterval(interval);
+      //clearInterval(interval);
     });
 
 /*
@@ -192,6 +192,9 @@ var erse="err";
             'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
             'Expect': ''
           }
+        }).on('error',function(){
+          clearInterval(interval);
+console.log('error occurred while got put');
         }));
     }
 
