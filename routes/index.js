@@ -88,6 +88,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
 
     var bytes = 0;var readbytes=0;
     var tmpfilename = path.join(__dirname, uuid.v4() + '.tmp');
+    
     var writestream=fs.createWriteStream(tmpfilename)
     .on('finish',function(){
       console.log('finished writing...');
@@ -100,35 +101,70 @@ router.get('/transfer/:fileid', function (req, res, next) {
     })
     .on('unpipe',function(){
       console.log('someone stopped writing...');
+      clearInterval();
     });
-    var googleFileRequest = service.files.get({
-      auth: oauth2Client,
-      fileId: fileId,
-      alt: 'media'
+
+/*
+https://www.googleapis.com/drive/v3/files/0B9jNhSvVjoIVM3dKcGRKRmVIOVU?alt=media
+Authorization: Bearer <ACCESS_TOKEN>
+*/
+
+    got.stream('https://www.googleapis.com/drive/v3/files/'+ fileId +'?alt=media' , {
+      headers: {
+        'Authorization': 'Bearer ' +  oauth2Client.credentials.access_token
+      }
+    }).on('request',function(args0,args1){
+
+      args0.on('error',function(){
+var error=arguments[0];
+      });
+      var reo11=args0;
+      //.pipe(writestream);
+
     })
-      .on('end', function () {
-        try {
-         
-        //clearInterval(interval);
-        console.log('Download Done, now uploading...');
-        
-        
-        } catch (error) {
-          console.log('error occurred at end.googleFileRequest ');
-        }
-      })
-      .on('data', function (chunk) {
+    .on('response',function(gotresponseinner){
+      gotresponseinner.on('data',function(chunk){
         try {
           bytes += chunk.length;
         } catch (error) {
-          console.log('error occurred on data. googleFileRequest');
+          console.log('error occurred on data. got response');
         }
-      })
-      .on('error', function (err) {
-        clearInterval(interval);
-        console.log('Error during download', err);
-      })
-      .pipe(writestream);
+      });
+    })
+    .on('error',function(){
+var erse="err";
+    })
+    .pipe(writestream);
+
+
+    // var googleFileRequest = service.files.get({
+    //   auth: oauth2Client,
+    //   fileId: fileId,
+    //   alt: 'media'
+    // })
+    //   .on('end', function () {
+    //     try {
+         
+    //     //clearInterval(interval);
+    //     console.log('Download Done, now uploading...');
+        
+        
+    //     } catch (error) {
+    //       console.log('error occurred at end.googleFileRequest ');
+    //     }
+    //   })
+    //   .on('data', function (chunk) {
+    //     try {
+    //       bytes += chunk.length;
+    //     } catch (error) {
+    //       console.log('error occurred on data. googleFileRequest');
+    //     }
+    //   })
+    //   .on('error', function (err) {
+    //     clearInterval(interval);
+    //     console.log('Error during download', err);
+    //   })
+    //   .pipe(writestream);
 
     function uploadfromfs() {
       
