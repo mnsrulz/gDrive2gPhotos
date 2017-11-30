@@ -120,6 +120,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
         console.log('Download request completed');
       })
       .on('response', function (gotresponseinner) {
+        var interval;
         gotresponseinner.pipe(got.stream(photoCreateResponse.headers.location, {
           method: "PUT",
           headers: {
@@ -130,7 +131,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
         }).on('request', function (uploadRequest) {
           console.log('Upload request initiated...');
           var initRequestBytesWritten = uploadRequest.connection.bytesWritten;
-          var interval = setInterval(function () {
+          interval = setInterval(function () {
             var actualDataBytesWritten = (uploadRequest.connection.bytesWritten - initRequestBytesWritten);
             downloadUploadProgress[requestId] = { requestTime: requestRecvdTime, recvd: bytesReceived, sent: actualDataBytesWritten, lastUpdate: new Date() };
             console.log('Download Progress' + (bytesReceived) + '/' + response.size + ', Upload Progress: ' + actualDataBytesWritten);
