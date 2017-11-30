@@ -87,27 +87,9 @@ router.get('/transfer/:fileid', function (req, res, next) {
     });
 
     var bytes = 0; var readbytes = 0;
-    var tmpfilename = path.join(__dirname, uuid.v4() + '.tmp');
-
-    // var writestream=fs.createWriteStream(tmpfilename)
-    // .on('finish',function(){
-    //   console.log('finished writing...');
-    //   setTimeout(() => {
-    //     uploadfromfs();   
-    //   }, 1000);
-    // })
-    // .on('pipe',function(){
-    //   console.log('someone writing...');
-    // })
-    // .on('unpipe',function(){
-    //   console.log('someone stopped writing...');
-    //   //clearInterval(interval);
-    // });
-
-
 
     /*
-    https://www.googleapis.com/drive/v3/files/0B9jNhSvVjoIVM3dKcGRKRmVIOVU?alt=media
+    https://www.googleapis.com/drive/v3/files/FILEID?alt=media
     Authorization: Bearer <ACCESS_TOKEN>
     */
 
@@ -125,16 +107,9 @@ router.get('/transfer/:fileid', function (req, res, next) {
         }
       })
       .on('end', function () {
-        try {
-
-          console.log('Download request completed');
-          //clearInterval(interval);        
-        } catch (error) {
-
-        }
+        console.log('Download request completed');
       })
       .on('response', function (gotresponseinner) {
-
         gotresponseinner.pipe(got.stream(photoCreateResponse.headers.location, {
           method: "PUT",
           headers: {
@@ -142,194 +117,28 @@ router.get('/transfer/:fileid', function (req, res, next) {
             'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
             'Expect': ''
           }
-        }).on('request',function(uploadRequest){
-          setInterval(function(){
-            readbytes=(uploadRequest.connection.bytesWritten);
-            if(readbytes>=response.size) {
-              console.log('End of file reached for this request...time to end request');
-              clearInterval();
-              //uploadRequest.end();
-            }
-          },500);
+        }).on('request', function (uploadRequest) {
           console.log('Upload request initiated...');
+          var initRequestBytesWritten = uploadRequest.connection.bytesWritten;
+          var interval = setInterval(function () {
+            var actualDataBytesWritten = (uploadRequest.connection.bytesWritten - initRequestBytesWritten);
+            console.log('Download Progress' + (bytes) + '/' + response.size + ', Upload Progress: ' + actualDataBytesWritten);
+            if (actualDataBytesWritten >= response.size) {
+              console.log('End of file reached for this request...time to end request');
+              clearInterval(interval);
+            }
+          }, 500);
+        }).on('response', function (whateverresponse) {
+          console.log('Upload request response recvd.');
+          try {
+            console.log(JSON.stringify(whateverresponse));
+          } catch (error) {
+            console.log('error while jsoning response...');
+          }
         }));
-
-        // gotreadstream.pause();
-        // debugger;
-        // got.stream(photoCreateResponse.headers.location, {
-        //   method: "PUT",
-        //   headers: {
-        //     'Content-Length': response.size,
-        //     'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-        //     'Expect': ''
-        //   }
-        // }).on('request', function (uploadRequest) {
-        //   setInterval(function(){
-        //     readbytes=(uploadRequest.connection.bytesWritten);
-        //     if(readbytes==response.size) {
-        //       console.log('End of file reached for this request...time to end request');
-        //       clearInterval();
-        //       //uploadRequest.end();
-        //     }
-        //   },500);
-        //   console.log('Upload request initiated...');
-        //   // gotreadstream.resume();
-        // }).on('response', function () {
-        //   console.log('Upload Request completed...');
-        //   try {
-        //     console.log(JSON.stringify(arguments));  
-        //   } catch (error) {
-        //     console.log('error while stringify...')
-        //   }
-
-        // });
       });
 
-    //.pipe();
-    var output = gotreadstream;
-
-    //.on('response', function (gotresponseinner) {
-
-    //   got(photoCreateResponse.headers.location, {
-    //     method: "PUT",
-    //     headers: {
-    //       'Content-Length': response.size,
-    //       'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-    //       'Expect': ''
-    //     },
-    //     body: gotresponseinner
-    //   }).on('request', function (innerrequest) {
-    //     var reqres = arguments[0];
-    //   }).on('response', function (innerrequestresponse) {
-    //     var reqres = arguments[0];
-    //   })
-
-    //   gotresponseinner.on('data', function (chunk) {
-    //     try {
-    //       bytes += chunk.length;
-    //     } catch (error) {
-    //       console.log('error occurred on data. got response');
-    //     }
-    //   });
-    // })
-    // .on('error', function () {
-    //   console.log('An error occurred in got response stream');
-    //   clearInterval(interval);
-    // });
-    //.pipe();
-    // .pipe(gotwritestream);
-
-    // var gotwritestream= got.stream.put(photoCreateResponse.headers.location, {
-    //   headers: {
-    //     'Content-Length': response.size,
-    //     'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-    //     'Expect': ''
-    //   },
-    //   //body: gotreadstream
-    // }).on('error',function(){
-    //   clearInterval(interval);
-    //   console.log('error occurred while got put');
-    // }).on('pipe',function(){
-    //   console.log('someone writing...');
-    // })
-    // .on('finish',function(){
-    //   console.log('finished writing...');
-    // })
-    // .on('unpipe',function(){
-    //   console.log('someone stopped writing...');
-    //   //clearInterval(interval);
-    // });
-    // var googleFileRequest = service.files.get({
-    //   auth: oauth2Client,
-    //   fileId: fileId,
-    //   alt: 'media'
-    // })
-    //   .on('end', function () {
-    //     try {
-
-    //     //clearInterval(interval);
-    //     console.log('Download Done, now uploading...');
-
-
-    //     } catch (error) {
-    //       console.log('error occurred at end.googleFileRequest ');
-    //     }
-    //   })
-    //   .on('data', function (chunk) {
-    //     try {
-    //       bytes += chunk.length;
-    //     } catch (error) {
-    //       console.log('error occurred on data. googleFileRequest');
-    //     }
-    //   })
-    //   .on('error', function (err) {
-    //     clearInterval(interval);
-    //     console.log('Error during download', err);
-    //   })
-    //   .pipe(writestream);
-
-    // function uploadfromfs() {
-
-    //   // var putrequest = request.put(photoCreateResponse.headers.location, {
-    //   //   headers: {
-    //   //     'Content-Length': response.size,
-    //   //     'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-    //   //     'Expect': ''
-    //   //   }
-    //   // });
-
-    //   // fs.createReadStream(tmpfilename)
-    //   //   .on('end', function () {
-    //   //     try {
-    //   //       console.log('File read end reached... Ending the request...');
-    //   //       clearInterval(interval);
-    //   //       //putrequest.end(); 
-    //   //     } catch (error) {
-    //   //       console.log('error occurred on end. fscreatereadstream');
-    //   //     }
-    //   //   })
-    //   //   .pipe(got.stream.put(photoCreateResponse.headers.location, {
-    //   //     headers: {
-    //   //       'Content-Length': response.size,
-    //   //       'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-    //   //       'Expect': ''
-    //   //     }
-    //   //   }).on('error', function () {
-    //   //     clearInterval(interval);
-    //   //     console.log('error occurred while got put');
-    //   //   }));
-    // }
-
-    var interval = setInterval(function () {
-      console.log('Download Progress' + (bytes) + '/' + response.size + ', Upload Progress: ' + readbytes);
-    }, 500);
-
-    //putrequest.body=googleFileRequest;
-    //putrequest.end();
-
-    // putrequest.on('end', function () {
-    //   clearInterval(interval);
-    //   //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
-    // });
-    // putrequest.on('error', function () {
-    //   clearInterval(interval);
-    //   //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
-    // });
-
-    // putrequest.on('drain', function () {
-    //   //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
-    // });
-
-    // var interval = setInterval(function () {
-    //   try {
-    //     console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);
-    //   } catch (error) {
-    //     do nothing..
-    //   }
-    // }, 500);
-
-
-    res.end("Queued..." + tmpfilename);
+    res.end("Queued...");
   });
 });
 
