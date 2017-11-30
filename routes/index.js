@@ -78,7 +78,12 @@ router.get('/transfer/:fileid', function (req, res, next) {
 
     var bytes = 0;var readbytes=0;
     var tmpfilename = path.join(__dirname, uuid.v4() + '.tmp');
-
+    var writestream=fs.createWriteStream(tmpfilename).on('finish',function(){
+      console.log('finished writing...');
+      setTimeout(() => {
+        uploadfromfs();   
+      }, 1000);
+    });
     var googleFileRequest = service.files.get({
       auth: oauth2Client,
       fileId: fileId,
@@ -89,9 +94,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
          
         //clearInterval(interval);
         console.log('Download Done, now uploading...');
-        setTimeout(() => {
-          uploadfromfs();   
-        }, 1000);
+        
         
         } catch (error) {
           console.log('error occurred at end.googleFileRequest ');
@@ -108,7 +111,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
         clearInterval(interval);
         console.log('Error during download', err);
       })
-      .pipe(fs.createWriteStream(tmpfilename));
+      .pipe(writestream);
 
     function uploadfromfs() {
       
@@ -141,7 +144,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
 
    var interval= setInterval(function () {
       console.log('Download Progress' + (bytes) + '/' + response.size + ', Upload Progress: ' + readbytes);
-    }, 1000);
+    }, 500);
 
     //putrequest.body=googleFileRequest;
     //putrequest.end();
