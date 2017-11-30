@@ -9,7 +9,7 @@ var request = require('request');
 var fs = require('fs');
 var path = require('path');
 var uuid = require('uuid');
-var got=require('got');
+var got = require('got');
 
 var gauthconfig = oauthConfig.google;
 
@@ -46,7 +46,7 @@ router.get('/temp', function (req, res, next) {
     const response = [];
     for (let file of items) {
       const extension = path.extname(file);
-      const fileSizeInBytes = fs.statSync(path.join(__dirname,file)).size;
+      const fileSizeInBytes = fs.statSync(path.join(__dirname, file)).size;
       response.push({ name: file, extension, fileSizeInBytes });
     }
 
@@ -71,7 +71,7 @@ router.get('/transfer/:fileid', function (req, res, next) {
     var pathToAlbum = 'https://photos.googleapis.com/data/upload/resumable/media/create-session/feed/api/user/default/albumid/6490558908293625281';
 
     //do we need to update teh filename in  this...
-    var photoCreateBody = '<?xml version="1.0" encoding="UTF-8"?><entry xmlns="http://www.w3.org/2005/Atom" xmlns:gphoto="http://schemas.google.com/photos/2007"><category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/photos/2007#photo"/><title>' + 'GP_'+ response.name + '</title><gphoto:timestamp>1475517389000</gphoto:timestamp></entry>';
+    var photoCreateBody = '<?xml version="1.0" encoding="UTF-8"?><entry xmlns="http://www.w3.org/2005/Atom" xmlns:gphoto="http://schemas.google.com/photos/2007"><category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/photos/2007#photo"/><title>' + 'GP_' + response.name + '</title><gphoto:timestamp>1475517389000</gphoto:timestamp></entry>';
 
     var photoCreateResponse = await axios.post(pathToAlbum, photoCreateBody, {
       headers: {
@@ -79,86 +79,138 @@ router.get('/transfer/:fileid', function (req, res, next) {
         'Content-Type': 'application/atom+xml; charset=utf-8',
         'X-Upload-Content-Length': response.size,
         'X-Upload-Content-Type': response.mimeType,
-        'Slug': 'GP_'+response.name,
+        'Slug': 'GP_' + response.name,
         'X-Forwarded-By': 'me',
         'data-binary': '@-',
         'GData-Version': '3'
       }
     });
 
-    var bytes = 0;var readbytes=0;
+    var bytes = 0; var readbytes = 0;
     var tmpfilename = path.join(__dirname, uuid.v4() + '.tmp');
-    
-    var writestream=fs.createWriteStream(tmpfilename)
-    .on('finish',function(){
-      console.log('finished writing...');
-      setTimeout(() => {
-        uploadfromfs();   
-      }, 1000);
-    })
-    .on('pipe',function(){
-      console.log('someone writing...');
-    })
-    .on('unpipe',function(){
-      console.log('someone stopped writing...');
-      //clearInterval(interval);
-    });
+
+    // var writestream=fs.createWriteStream(tmpfilename)
+    // .on('finish',function(){
+    //   console.log('finished writing...');
+    //   setTimeout(() => {
+    //     uploadfromfs();   
+    //   }, 1000);
+    // })
+    // .on('pipe',function(){
+    //   console.log('someone writing...');
+    // })
+    // .on('unpipe',function(){
+    //   console.log('someone stopped writing...');
+    //   //clearInterval(interval);
+    // });
 
 
-    var gotwritestream= got.stream.put(photoCreateResponse.headers.location, {
+
+    /*
+    https://www.googleapis.com/drive/v3/files/0B9jNhSvVjoIVM3dKcGRKRmVIOVU?alt=media
+    Authorization: Bearer <ACCESS_TOKEN>
+    */
+
+    var gotreadstream = got.stream('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
+      encoding: null,
       headers: {
-        'Content-Length': response.size,
-        'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-        'Expect': ''
-      }
-    }).on('error',function(){
-      clearInterval(interval);
-      console.log('error occurred while got put');
-    }).on('pipe',function(){
-      console.log('someone writing...');
-    })
-    .on('finish',function(){
-      console.log('finished writing...');
-    })
-    .on('unpipe',function(){
-      console.log('someone stopped writing...');
-      //clearInterval(interval);
-    });
-/*
-https://www.googleapis.com/drive/v3/files/0B9jNhSvVjoIVM3dKcGRKRmVIOVU?alt=media
-Authorization: Bearer <ACCESS_TOKEN>
-*/
-
-    got.stream('https://www.googleapis.com/drive/v3/files/'+ fileId +'?alt=media' , {
-      headers: {
-        'Authorization': 'Bearer ' +  oauth2Client.credentials.access_token
+        'Authorization': 'Bearer ' + oauth2Client.credentials.access_token
       }
     })
-//     .on('request',function(args0,args1){
-
-//       args0.on('error',function(){
-// var error=arguments[0];
-//       });
-//       var reo11=args0;
-//       //.pipe(writestream);
-
-//     })
-    .on('response',function(gotresponseinner){
-      gotresponseinner.on('data',function(chunk){
+      .on('data', function (chunk) {
         try {
           bytes += chunk.length;
         } catch (error) {
           console.log('error occurred on data. got response');
         }
+      })
+      .on('end',function(){
+        try {
+         
+        console.log('Download request completed');
+          clearInterval(interval);        
+        } catch (error) {
+          
+        }
+      })
+      .on('response', function (gotresponseinner) {
+        debugger;
+        got.stream(photoCreateResponse.headers.location, {
+          method: "PUT",
+          headers: {
+            'Content-Length': response.size,
+            'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
+            'Expect': ''
+          },
+          body: gotresponseinner
+        }).on('request', function (uploadRequest) {
+          console.log('Upload request initiated...');
+          gotreadstream.resume();
+        }).on('response', function () {
+          console.log('Upload Request completed...');
+          try {
+            console.log(JSON.stringify(arguments));  
+          } catch (error) {
+            console.log('error while stringify...')
+          }
+          
+        });
       });
-    })
-    .on('error',function(){
-      console.log('An error occurred in got response stream');
-      clearInterval(interval);
-    })
-    .pipe(gotwritestream);
 
+    //.pipe();
+    var output = gotreadstream;
 
+    //.on('response', function (gotresponseinner) {
+
+    //   got(photoCreateResponse.headers.location, {
+    //     method: "PUT",
+    //     headers: {
+    //       'Content-Length': response.size,
+    //       'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
+    //       'Expect': ''
+    //     },
+    //     body: gotresponseinner
+    //   }).on('request', function (innerrequest) {
+    //     var reqres = arguments[0];
+    //   }).on('response', function (innerrequestresponse) {
+    //     var reqres = arguments[0];
+    //   })
+
+    //   gotresponseinner.on('data', function (chunk) {
+    //     try {
+    //       bytes += chunk.length;
+    //     } catch (error) {
+    //       console.log('error occurred on data. got response');
+    //     }
+    //   });
+    // })
+    // .on('error', function () {
+    //   console.log('An error occurred in got response stream');
+    //   clearInterval(interval);
+    // });
+    //.pipe();
+    // .pipe(gotwritestream);
+
+    // var gotwritestream= got.stream.put(photoCreateResponse.headers.location, {
+    //   headers: {
+    //     'Content-Length': response.size,
+    //     'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
+    //     'Expect': ''
+    //   },
+    //   //body: gotreadstream
+    // }).on('error',function(){
+    //   clearInterval(interval);
+    //   console.log('error occurred while got put');
+    // }).on('pipe',function(){
+    //   console.log('someone writing...');
+    // })
+    // .on('finish',function(){
+    //   console.log('finished writing...');
+    // })
+    // .on('unpipe',function(){
+    //   console.log('someone stopped writing...');
+    //   //clearInterval(interval);
+    // });
     // var googleFileRequest = service.files.get({
     //   auth: oauth2Client,
     //   fileId: fileId,
@@ -166,11 +218,11 @@ Authorization: Bearer <ACCESS_TOKEN>
     // })
     //   .on('end', function () {
     //     try {
-         
+
     //     //clearInterval(interval);
     //     console.log('Download Done, now uploading...');
-        
-        
+
+
     //     } catch (error) {
     //       console.log('error occurred at end.googleFileRequest ');
     //     }
@@ -188,41 +240,41 @@ Authorization: Bearer <ACCESS_TOKEN>
     //   })
     //   .pipe(writestream);
 
-    function uploadfromfs() {
-      
-      // var putrequest = request.put(photoCreateResponse.headers.location, {
-      //   headers: {
-      //     'Content-Length': response.size,
-      //     'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-      //     'Expect': ''
-      //   }
-      // });
+    // function uploadfromfs() {
 
-      fs.createReadStream(tmpfilename)
-        .on('end', function () {
-          try {
-          console.log('File read end reached... Ending the request...');
-          clearInterval(interval);
-          //putrequest.end(); 
-          } catch (error) {
-            console.log('error occurred on end. fscreatereadstream');
-          }
-        })
-        .pipe(got.stream.put(photoCreateResponse.headers.location, {
-          headers: {
-            'Content-Length': response.size,
-            'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-            'Expect': ''
-          }
-        }).on('error',function(){
-          clearInterval(interval);
-console.log('error occurred while got put');
-        }));
-    }
+    //   // var putrequest = request.put(photoCreateResponse.headers.location, {
+    //   //   headers: {
+    //   //     'Content-Length': response.size,
+    //   //     'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
+    //   //     'Expect': ''
+    //   //   }
+    //   // });
 
-   var interval= setInterval(function () {
-      console.log('Download Progress' + (bytes) + '/' + response.size + ', Upload Progress: ' + readbytes);
-    }, 500);
+    //   // fs.createReadStream(tmpfilename)
+    //   //   .on('end', function () {
+    //   //     try {
+    //   //       console.log('File read end reached... Ending the request...');
+    //   //       clearInterval(interval);
+    //   //       //putrequest.end(); 
+    //   //     } catch (error) {
+    //   //       console.log('error occurred on end. fscreatereadstream');
+    //   //     }
+    //   //   })
+    //   //   .pipe(got.stream.put(photoCreateResponse.headers.location, {
+    //   //     headers: {
+    //   //       'Content-Length': response.size,
+    //   //       'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
+    //   //       'Expect': ''
+    //   //     }
+    //   //   }).on('error', function () {
+    //   //     clearInterval(interval);
+    //   //     console.log('error occurred while got put');
+    //   //   }));
+    // }
+
+    // var interval = setInterval(function () {
+    //   console.log('Download Progress' + (bytes) + '/' + response.size + ', Upload Progress: ' + readbytes);
+    // }, 500);
 
     //putrequest.body=googleFileRequest;
     //putrequest.end();
@@ -240,13 +292,13 @@ console.log('error occurred while got put');
     //   //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
     // });
 
-    // var interval = setInterval(function () {
-    //   try {
-    //     console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);
-    //   } catch (error) {
-    //     //do nothing..
-    //   }
-    // }, 500);
+    var interval = setInterval(function () {
+      try {
+        console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);
+      } catch (error) {
+        //do nothing..
+      }
+    }, 500);
 
 
     res.end("Queued..." + tmpfilename);
