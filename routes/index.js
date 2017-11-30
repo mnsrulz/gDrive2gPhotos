@@ -124,46 +124,55 @@ router.get('/transfer/:fileid', function (req, res, next) {
           console.log('error occurred on data. got response');
         }
       })
-      .on('end',function(){
+      .on('end', function () {
         try {
-         
-        console.log('Download request completed');
+
+          console.log('Download request completed');
           //clearInterval(interval);        
         } catch (error) {
-          
+
         }
       })
       .on('response', function (gotresponseinner) {
-        gotreadstream.pause();
-        debugger;
-        got.stream(photoCreateResponse.headers.location, {
+
+        gotresponseinner.pipe(got.stream(photoCreateResponse.headers.location, {
           method: "PUT",
           headers: {
             'Content-Length': response.size,
             'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
             'Expect': ''
-          },
-          body: gotresponseinner
-        }).on('request', function (uploadRequest) {
-          setInterval(function(){
-            readbytes=(uploadRequest.connection.bytesWritten);
-            if(readbytes==response.size) {
-              console.log('End of file reached for this request...time to end request');
-              clearInterval();
-              //uploadRequest.end();
-            }
-          },500);
-          console.log('Upload request initiated...');
-          gotreadstream.resume();
-        }).on('response', function () {
-          console.log('Upload Request completed...');
-          try {
-            console.log(JSON.stringify(arguments));  
-          } catch (error) {
-            console.log('error while stringify...')
           }
-          
-        });
+        }));
+
+        // gotreadstream.pause();
+        // debugger;
+        // got.stream(photoCreateResponse.headers.location, {
+        //   method: "PUT",
+        //   headers: {
+        //     'Content-Length': response.size,
+        //     'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
+        //     'Expect': ''
+        //   }
+        // }).on('request', function (uploadRequest) {
+        //   setInterval(function(){
+        //     readbytes=(uploadRequest.connection.bytesWritten);
+        //     if(readbytes==response.size) {
+        //       console.log('End of file reached for this request...time to end request');
+        //       clearInterval();
+        //       //uploadRequest.end();
+        //     }
+        //   },500);
+        //   console.log('Upload request initiated...');
+        //   // gotreadstream.resume();
+        // }).on('response', function () {
+        //   console.log('Upload Request completed...');
+        //   try {
+        //     console.log(JSON.stringify(arguments));  
+        //   } catch (error) {
+        //     console.log('error while stringify...')
+        //   }
+
+        // });
       });
 
     //.pipe();
