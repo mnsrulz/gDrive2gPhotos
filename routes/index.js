@@ -272,9 +272,9 @@ router.get('/transfer/:fileid', function (req, res, next) {
     //   //   }));
     // }
 
-    // var interval = setInterval(function () {
-    //   console.log('Download Progress' + (bytes) + '/' + response.size + ', Upload Progress: ' + readbytes);
-    // }, 500);
+    var interval = setInterval(function () {
+      console.log('Download Progress' + (bytes) + '/' + response.size + ', Upload Progress: ' + readbytes);
+    }, 500);
 
     //putrequest.body=googleFileRequest;
     //putrequest.end();
@@ -292,13 +292,13 @@ router.get('/transfer/:fileid', function (req, res, next) {
     //   //console.log('Write  progress'+ (putrequest.req.connection.bytesWritten) + '/'+response.size);
     // });
 
-    var interval = setInterval(function () {
-      try {
-        console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);
-      } catch (error) {
-        //do nothing..
-      }
-    }, 500);
+    // var interval = setInterval(function () {
+    //   try {
+    //     console.log('Write: ' + putrequest.req.connection.bytesWritten + '/' + response.size);
+    //   } catch (error) {
+    //     do nothing..
+    //   }
+    // }, 500);
 
 
     res.end("Queued..." + tmpfilename);
