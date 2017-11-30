@@ -104,6 +104,26 @@ router.get('/transfer/:fileid', function (req, res, next) {
       //clearInterval(interval);
     });
 
+
+    var gotwritestream= got.stream.put(photoCreateResponse.headers.location, {
+      headers: {
+        'Content-Length': response.size,
+        'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
+        'Expect': ''
+      }
+    }).on('error',function(){
+      clearInterval(interval);
+      console.log('error occurred while got put');
+    }).on('pipe',function(){
+      console.log('someone writing...');
+    })
+    .on('finish',function(){
+      console.log('finished writing...');
+    })
+    .on('unpipe',function(){
+      console.log('someone stopped writing...');
+      //clearInterval(interval);
+    });
 /*
 https://www.googleapis.com/drive/v3/files/0B9jNhSvVjoIVM3dKcGRKRmVIOVU?alt=media
 Authorization: Bearer <ACCESS_TOKEN>
@@ -113,15 +133,16 @@ Authorization: Bearer <ACCESS_TOKEN>
       headers: {
         'Authorization': 'Bearer ' +  oauth2Client.credentials.access_token
       }
-    }).on('request',function(args0,args1){
-
-      args0.on('error',function(){
-var error=arguments[0];
-      });
-      var reo11=args0;
-      //.pipe(writestream);
-
     })
+//     .on('request',function(args0,args1){
+
+//       args0.on('error',function(){
+// var error=arguments[0];
+//       });
+//       var reo11=args0;
+//       //.pipe(writestream);
+
+//     })
     .on('response',function(gotresponseinner){
       gotresponseinner.on('data',function(chunk){
         try {
@@ -132,9 +153,10 @@ var error=arguments[0];
       });
     })
     .on('error',function(){
-var erse="err";
+      console.log('An error occurred in got response stream');
+      clearInterval(interval);
     })
-    .pipe(writestream);
+    .pipe(gotwritestream);
 
 
     // var googleFileRequest = service.files.get({
