@@ -39,7 +39,7 @@ function getAccessTokenAsync(req) {
 
 
 /* GET home page. */
-router.get('/', function (req, res, next) {
+router.get('/', async function (req, res, next) {
   var oauth2Client = getAuth(req);
   var promiseListFiles = new Promise((resolve, reject) => {
     service.files.list({
@@ -56,7 +56,7 @@ router.get('/', function (req, res, next) {
     });
   });
 
-  var promiseListAlbums = new Promise((resolve, reject) => {
+  var promiseListAlbums = new Promise(async (resolve, reject) => {
     var accessToken = await getAccessTokenAsync(req);
     picasa.getAlbums(accessToken, {}, (error, albums) => {
       if (error) {
