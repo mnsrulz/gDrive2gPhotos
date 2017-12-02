@@ -10,6 +10,9 @@ var fs = require('fs');
 var path = require('path');
 var uuid = require('uuid');
 var got = require('got');
+var Picasa = require('../picasa');
+
+var picasa = new Picasa();
 
 var gauthconfig = oauthConfig.google;
 
@@ -22,22 +25,56 @@ function getAuth(req) {
   return oauth2Client;
 }
 
+function getAccessTokenAsync(req) {
+  return new Promise((resolve, reject) => {
+    var oauth2Client = getAuth(req);
+    oauth2Client.getAccessToken((err, accessToken) => {
+      if (err) {
+        reject('getAccessTokenAsync: An error occurred while retrieiving the token');
+      }
+      else resolve(accessToken);
+    });
+  });
+}
+
+
 /* GET home page. */
 router.get('/', function (req, res, next) {
   var oauth2Client = getAuth(req);
-  service.files.list({
-    auth: oauth2Client,
-    pageSize: 100,
-    fields: "nextPageToken, files"
-  }, function (err, response) {
-    if (err) {
-      res.send('The API returned an error: ' + err);
-      res.end();
-    }
-    else {
-      res.render("index", { files: response.files });
-    }
+  var promiseListFiles = new Promise((resolve, reject) => {
+    service.files.list({
+      auth: oauth2Client,
+      pageSize: 100,
+      fields: "nextPageToken, files"
+    }, function (err, response) {
+      if (err) {
+        reject(err);
+      }
+      else {
+        resolve(response.files);
+      }
+    });
   });
+
+  var promiseListAlbums = new Promise((resolve, reject) => {
+    var accessToken = await getAccessTokenAsync(req);
+    picasa.getAlbums(accessToken, {}, (error, albums) => {
+      if (error) {
+        reject(error);
+      }
+      else {
+        resolve(albums);
+      }
+    });
+  });
+
+  Promise.all([promiseListFiles, promiseListAlbums]).then((result) => {
+    res.render("index", { files: result[0], albums: result[1] });
+  }).catch(() => {
+    res.end('An unknown error occurred');
+    console.log('Error occurred while retrieving files or albums');
+  });
+
 });
 
 router.get('/temp', function (req, res, next) {
@@ -66,27 +103,50 @@ router.get('/progress/:requestid', function (req, res, next) {
   res.end(JSON.stringify(downloadUploadProgress[requestId]));
 });
 
-router.get('/transfer/:fileid', function (req, res, next) {
+router.get('/album/:albumid', function (req, res, next) {
+  var albumId = req.params.albumid;
+  var oauth2Client = getAuth(req);
+  oauth2Client.getAccessToken((err, accessToken) => {
+    if (err) {
+      reject('ListToken: An error occurred while retrieiving the photos');
+    }
+    var options = {
+      maxResults: 100, // by default get all
+      albumId: albumId // by default all photos are selected
+    };
+
+    picasa.getVideos(accessToken, options, (error, albums) => {
+      if (error) {
+        res.send(error);
+      }
+      else {
+        res.send(JSON.stringify(albums, null, 4));
+      }
+    });
+  });
+
+})
+
+router.get('/transfer/:fileid/:albumid', function (req, res, next) {
   var oauth2Client = getAuth(req);
   var fileId = req.params.fileid;
+  var albumId = req.params.albumid;
   service.files.get({
     auth: oauth2Client,
     'fileId': fileId,
     "fields": "*"
   }, async function (err, response) {
-    //for testing purpose  this is hard coded here...
-    var pathToAlbum = 'https://photos.googleapis.com/data/upload/resumable/media/create-session/feed/api/user/default/albumid/6490558908293625281';
-
-    //do we need to update teh filename in  this...
-    var photoCreateBody = '<?xml version="1.0" encoding="UTF-8"?><entry xmlns="http://www.w3.org/2005/Atom" xmlns:gphoto="http://schemas.google.com/photos/2007"><category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/photos/2007#photo"/><title>' + 'GP_' + response.name + '</title><gphoto:timestamp>1475517389000</gphoto:timestamp></entry>';
+    var pathToAlbum = 'https://photos.googleapis.com/data/upload/resumable/media/create-session/feed/api/user/default/albumid/' + albumId;
+    var accessToken = await getAccessTokenAsync(req);
+    var photoCreateBody = '<?xml version="1.0" encoding="UTF-8"?><entry xmlns="http://www.w3.org/2005/Atom" xmlns:gphoto="http://schemas.google.com/photos/2007"><category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/photos/2007#photo"/><title>' + 'GP_' + fileId + '</title><gphoto:timestamp>1475517389000</gphoto:timestamp></entry>';
 
     var photoCreateResponse = await axios.post(pathToAlbum, photoCreateBody, {
       headers: {
-        'Authorization': 'Bearer ' + oauth2Client.credentials.access_token,
+        'Authorization': 'Bearer ' + accessToken,
         'Content-Type': 'application/atom+xml; charset=utf-8',
         'X-Upload-Content-Length': response.size,
         'X-Upload-Content-Type': response.mimeType,
-        'Slug': 'GP_' + response.name,
+        'Slug': 'GP_' + fileId,
         'X-Forwarded-By': 'me',
         'data-binary': '@-',
         'GData-Version': '3'
@@ -143,14 +203,14 @@ router.get('/transfer/:fileid', function (req, res, next) {
           downloadUploadProgress[requestId].lastUpdate = new Date();
           console.log('Upload request response recvd.');
           console.log('Status Code: ' + whateverresponse.statusCode);
-        }).on('error',function(requestUploadErr){
+        }).on('error', function (requestUploadErr) {
           console.log('error occurred while uploading file.. ' + requestUploadErr);
           clearInterval(interval);
-          downloadUploadProgress[requestId].status="Error occurred: " + requestUploadErr;
+          downloadUploadProgress[requestId].status = "Error occurred: " + requestUploadErr;
         }));
       });
 
-    res.redirect('../progress/'+ requestId);
+    res.redirect('/index/progress/' + requestId);
   });
 });
 

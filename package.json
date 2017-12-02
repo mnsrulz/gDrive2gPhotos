@@ -20,6 +20,7 @@
     "node-uuid": "^1.4.8",
     "passport": "^0.4.0",
     "passport-google-oauth2": "^0.1.6",
+    "picasa": "^1.0.6",
     "serve-favicon": "~2.4.5",
     "session": "^0.1.0"
   }

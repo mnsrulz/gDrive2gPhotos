@@ -1,6 +1,6 @@
 extends layout
-
 block content
+  script(src='/javascripts/index.js')
   h1= title
   p Welcome to #{title}
   table
@@ -20,5 +20,10 @@ block content
               br
               span= o.size
           td
-            a(href="/index/transfer/"+o.id) Transfer
+            select(id="ddl_" + o.id)
+              each album in albums
+                option(value="#{album.id}") #{album.title}
+            button(onclick='transfer("#{o.id}")') Transfer
+            button(onclick='viewPhotos("#{o.id}")') View Photos
+            
               
