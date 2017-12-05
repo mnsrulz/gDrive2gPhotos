@@ -29,6 +29,8 @@ function transfer(fileid) {
         useGrouping: true,
         separator: ',',
         decimal: '.',
+        prefix: '',
+        suffix: ' %',
     };
     var progressElementCountup = new CountUp('progress_' + fileid, 0, 0, 2, 0.5, options);
     if (!progressElementCountup.error) {
