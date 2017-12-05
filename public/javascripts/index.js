@@ -46,7 +46,7 @@ function transfer(fileid) {
         .end(function (err, res) {
             debugger;
             socket.emit("subscribe", { requestId: res.body.requestId });
-            downloadsInProgress[requestId] = progressElementCountup;
+            downloadsInProgress[res.body.requestId] = progressElementCountup;
 
         });
 
