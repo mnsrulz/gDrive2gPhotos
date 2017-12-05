@@ -193,24 +193,47 @@ router.get('/transfer/:fileid/:albumid', function (req, res, next) {
           var initRequestBytesWritten = uploadRequest.connection.bytesWritten;
           interval = setInterval(function () {
             var actualDataBytesWritten = (uploadRequest.connection.bytesWritten - initRequestBytesWritten);
-            downloadUploadProgress[requestId] = { requestTime: requestRecvdTime, recvd: bytesReceived, sent: actualDataBytesWritten, lastUpdate: new Date() };
+            //let's not concentrate on the data to sent, send whichever we got now...
+            downloadUploadProgress[requestId] = {
+              requestId: requestId,
+              requestTime: requestRecvdTime,
+              size: response.size,
+              recvd: bytesReceived,
+              sent: actualDataBytesWritten,
+              lastUpdate: new Date(), status: "In Progress"
+            };
+            req.io.in(requestId).emit('progress', downloadUploadProgress[requestId]);
             console.log('Download Progress' + (bytesReceived) + '/' + response.size + ', Upload Progress: ' + actualDataBytesWritten);
           }, 500);
         }).on('response', function (whateverresponse) {
           clearInterval(interval);
+          downloadUploadProgress[requestId].requestId= requestId;
           downloadUploadProgress[requestId].requestTime = requestRecvdTime;
           downloadUploadProgress[requestId].status = "Completed";
           downloadUploadProgress[requestId].lastUpdate = new Date();
+          downloadUploadProgress[requestId].statusCode = whateverresponse.statusCode;
+
+          req.io.in(requestId).emit('progress', downloadUploadProgress[requestId]);
           console.log('Upload request response recvd.');
           console.log('Status Code: ' + whateverresponse.statusCode);
         }).on('error', function (requestUploadErr) {
           console.log('error occurred while uploading file.. ' + requestUploadErr);
+          
+          downloadUploadProgress[requestId].requestId= requestId;
+          downloadUploadProgress[requestId].requestTime = requestRecvdTime;
+          downloadUploadProgress[requestId].status = "Error";
+          downloadUploadProgress[requestId].lastUpdate = new Date();
+          downloadUploadProgress[requestId].statusCode = whateverresponse.statusCode;
+          downloadUploadProgress[requestId].errorMessage = requestUploadErr;
+          
+          req.io.in(requestId).emit('progress', downloadUploadProgress[requestId]);
+
           clearInterval(interval);
-          downloadUploadProgress[requestId].status = "Error occurred: " + requestUploadErr;
+          //downloadUploadProgress[requestId].status = "Error occurred: " + requestUploadErr;
         }));
       });
 
-    res.redirect('/index/progress/' + requestId);
+    res.send({ requestId: requestId });
   });
 });
 

@@ -22,6 +22,7 @@
     "passport-google-oauth2": "^0.1.6",
     "picasa": "^1.0.6",
     "serve-favicon": "~2.4.5",
-    "session": "^0.1.0"
+    "session": "^0.1.0",
+    "socket.io": "^2.0.4"
   }
 }
