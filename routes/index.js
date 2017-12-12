@@ -138,7 +138,7 @@ router.get('/transfer/:fileid/:albumid', function (req, res, next) {
   }, async function (err, response) {
     var pathToAlbum = 'https://photos.googleapis.com/data/upload/resumable/media/create-session/feed/api/user/default/albumid/' + albumId;
     var accessToken = await getAccessTokenAsync(req);
-    var photoCreateBody = '<?xml version="1.0" encoding="UTF-8"?><entry xmlns="http://www.w3.org/2005/Atom" xmlns:gphoto="http://schemas.google.com/photos/2007"><category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/photos/2007#photo"/><title>' + 'GP_' + fileId + '</title><gphoto:timestamp>1475517389000</gphoto:timestamp></entry>';
+    var photoCreateBody = '<?xml version="1.0" encoding="UTF-8"?><entry xmlns="http://www.w3.org/2005/Atom" xmlns:gphoto="http://schemas.google.com/photos/2007"><category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/photos/2007#photo"/><title>' + 'GP_' + fileId + '</title><summary>' + response.name + '</summary><gphoto:timestamp>1475517389000</gphoto:timestamp></entry>';
 
     var photoCreateResponse = await axios.post(pathToAlbum, photoCreateBody, {
       headers: {
@@ -207,7 +207,7 @@ router.get('/transfer/:fileid/:albumid', function (req, res, next) {
           }, 500);
         }).on('response', function (whateverresponse) {
           clearInterval(interval);
-          downloadUploadProgress[requestId].requestId= requestId;
+          downloadUploadProgress[requestId].requestId = requestId;
           downloadUploadProgress[requestId].requestTime = requestRecvdTime;
           downloadUploadProgress[requestId].status = "Completed";
           downloadUploadProgress[requestId].lastUpdate = new Date();
@@ -218,14 +218,14 @@ router.get('/transfer/:fileid/:albumid', function (req, res, next) {
           console.log('Status Code: ' + whateverresponse.statusCode);
         }).on('error', function (requestUploadErr) {
           console.log('error occurred while uploading file.. ' + requestUploadErr);
-          
-          downloadUploadProgress[requestId].requestId= requestId;
+
+          downloadUploadProgress[requestId].requestId = requestId;
           downloadUploadProgress[requestId].requestTime = requestRecvdTime;
           downloadUploadProgress[requestId].status = "Error";
           downloadUploadProgress[requestId].lastUpdate = new Date();
           downloadUploadProgress[requestId].statusCode = whateverresponse.statusCode;
           downloadUploadProgress[requestId].errorMessage = requestUploadErr;
-          
+
           req.io.in(requestId).emit('progress', downloadUploadProgress[requestId]);
 
           clearInterval(interval);
