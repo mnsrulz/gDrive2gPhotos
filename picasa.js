@@ -66,15 +66,25 @@ function getVideos(accessToken, options, callback) {
             entry => {
                 try {
                     var defaultEntry = parseEntry(entry, videoSchema);
+                    defaultEntry["ts"]=new Date(parseInt(entry.gphoto$timestamp.$t));
                     defaultEntry["sources"] = entry.media$group.media$content.filter(f => f.medium === "video");
                     defaultEntry["thumbnail"] = entry.media$group.media$thumbnail;
                     var defaultSource = entry.media$group.media$content.find(f => f.medium === "video" && f.height.toString() === defaultEntry.height);
                     defaultEntry.content.thumb = defaultEntry.content.src;
+                    if (defaultSource == null) {
+                        defaultSource = entry.media$group.media$content.filter(f => f.medium === "video").sort(function (a, b) {
+                            if (a.width < b.width)
+                                return -1;
+                            if (a.width > b.width)
+                                return 1;
+                            return 0;
+                        }).pop();
+                    }
                     defaultEntry.content.src = defaultSource.url;
                     defaultEntry.content.type = defaultSource.type;
                     return defaultEntry;
                 } catch (error) {
-                    return null;
+                    console.log('An error occurred while parsing the video entry.' + error);
                 }
             }
         ).filter(x => x);

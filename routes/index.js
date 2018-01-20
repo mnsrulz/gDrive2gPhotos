@@ -103,6 +103,24 @@ router.get('/progress/:requestid', function (req, res, next) {
   res.end(JSON.stringify(downloadUploadProgress[requestId]));
 });
 
+router.get('/album', function (req, res, next) {
+  var oauth2Client = getAuth(req);
+  oauth2Client.getAccessToken((err, accessToken) => {
+    if (err) {
+      res.send('ListToken: An error occurred while retrieiving the photos');
+    } else {
+      picasa.getAlbums(accessToken, {}, (error, albums) => {
+        if (error) {
+          res.send(error);
+        }
+        else {
+          res.send(JSON.stringify(albums));
+        }
+      });
+    }
+  })
+});
+
 router.get('/album/:albumid', function (req, res, next) {
   var albumId = req.params.albumid;
   var oauth2Client = getAuth(req);
