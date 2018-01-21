@@ -121,6 +121,24 @@ router.get('/album', function (req, res, next) {
   })
 });
 
+router.get('/proxyplay/:gdriveFileId/:gphotourl', function (req, res, next) {
+  var gdriveurltohit = encodeURIComponent('https://drive.google.com/open?id=' + req.params.gdriveFileId);
+  request.post({
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    url: 'http://demo.filedeo.stream/drive/',
+    body: 'url=' + gdriveurltohit + '&submit=GET'
+  }, function (err1, res1, body) {
+    if (err1) {
+      console.log('error occurred while generating the gdrive direct link:' + err1);
+      res.redirect(req.params.gphotourl);
+    } else {
+      var drivedirecturl = body.match(/https.*?download/)[0];
+      console.log('found gdrive url as: ' + drivedirecturl);
+      res.redirect(drivedirecturl);
+    }
+  });
+});
+
 router.get('/album/:albumid', function (req, res, next) {
   var albumId = req.params.albumid;
   var oauth2Client = getAuth(req);

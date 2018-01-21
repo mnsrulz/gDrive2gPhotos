@@ -428,6 +428,9 @@
                         var snippet = items[i];
                         // if (snippet.resourceId.kind === "youtube#video" && snippet.title !== "Deleted video" && snippet.title !== "Private video") { 
                         // }
+                        
+                        //just a hack so as if gdrive original url and picasa url are different then we will load the gdrive media through proxying.
+                        var mediaSrc = (!snippet.orgResolutionPresent && snippet.title.startsWith('GP_')) ? '/index/proxyplay/' + snippet.title.substr(3) + '/' + encodeURIComponent(snippet.content.src) : snippet.content.src;
                         currObj = {
                             id: snippet.id,
                             title: snippet.summary,
@@ -435,7 +438,7 @@
                             pubDate: exports.utils.formatDate('01/01/2000'),
                             imgURL: snippet.content.thumb,
                             thumbURL: this.getHighestResThumb(snippet.thumbnail),
-                            videoURL: snippet.content.src
+                            videoURL: mediaSrc
                         };
                         contents.push(currObj);
 

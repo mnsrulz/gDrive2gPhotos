@@ -66,12 +66,14 @@ function getVideos(accessToken, options, callback) {
             entry => {
                 try {
                     var defaultEntry = parseEntry(entry, videoSchema);
-                    defaultEntry["ts"]=new Date(parseInt(entry.gphoto$timestamp.$t));
+                    defaultEntry["ts"] = new Date(parseInt(entry.gphoto$timestamp.$t));
                     defaultEntry["sources"] = entry.media$group.media$content.filter(f => f.medium === "video");
                     defaultEntry["thumbnail"] = entry.media$group.media$thumbnail;
+                    defaultEntry["orgResolutionPresent"] = true;
                     var defaultSource = entry.media$group.media$content.find(f => f.medium === "video" && f.height.toString() === defaultEntry.height);
                     defaultEntry.content.thumb = defaultEntry.content.src;
                     if (defaultSource == null) {
+                        defaultEntry["orgResolutionPresent"] = false;
                         defaultSource = entry.media$group.media$content.filter(f => f.medium === "video").sort(function (a, b) {
                             if (a.width < b.width)
                                 return -1;
