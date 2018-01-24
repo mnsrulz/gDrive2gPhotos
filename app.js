@@ -18,7 +18,10 @@ app.set('view engine', 'jade');
 
 var sessionOptions={
   secret: 'my_precious',
-  resave: false
+  resave: false,
+  cookie:{
+    maxAge: 24*60*60*1000 //1day cookie max age
+  }
 };
 
 if (process.env.RedisUrl &&  process.env.RedisPort && process.env.RedisPwd)
