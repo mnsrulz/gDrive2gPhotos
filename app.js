@@ -4,9 +4,11 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-var session = require('express-session')
+var session = require('express-session');
 var passport = require('passport');
 var GoogleStrategy = require('passport-google-oauth2').Strategy;
+
+var RedisStore = require('connect-redis')(session);
 
 var app = express();
 
@@ -14,7 +16,20 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
-app.use(session({ secret: 'my_precious' }));
+var sessionOptions={
+  secret: 'my_precious',
+  resave: false
+};
+
+if (process.env.RedisUrl &&  process.env.RedisPort)
+{
+  sessionOptions.store=new RedisStore({
+    host: process.env.RedisUrl,
+    port: process.env.RedisPort
+  });
+}
+
+app.use(session(sessionOptions));
 //app.use(express.methodOverride());
 
 app.use(passport.initialize());
@@ -29,10 +44,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 // serialize and deserialize
-passport.serializeUser(function(user, done) {
+passport.serializeUser(function (user, done) {
   done(null, user);
 });
-passport.deserializeUser(function(obj, done) {
+passport.deserializeUser(function (obj, done) {
   done(null, obj);
 });
 module.exports = app;
