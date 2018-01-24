@@ -23,10 +23,14 @@ var sessionOptions={
 
 if (process.env.RedisUrl &&  process.env.RedisPort)
 {
+  console.log('redis setup...' + process.env.RedisUrl + ':' + process.env.RedisPort);
   sessionOptions.store=new RedisStore({
     host: process.env.RedisUrl,
     port: process.env.RedisPort
   });
+}
+else{
+  console.log('redis keys not found');
 }
 
 app.use(session(sessionOptions));
