@@ -21,16 +21,17 @@ var sessionOptions={
   resave: false
 };
 
-if (process.env.RedisUrl &&  process.env.RedisPort)
+if (process.env.RedisUrl &&  process.env.RedisPort && process.env.RedisPwd)
 {
   console.log('redis setup...' + process.env.RedisUrl + ':' + process.env.RedisPort);
   sessionOptions.store=new RedisStore({
     host: process.env.RedisUrl,
-    port: process.env.RedisPort
+    port: process.env.RedisPort,
+    pass: process.env.RedisPwd
   });
 }
 else{
-  console.log('redis keys not found');
+  console.log('redis keys/password not found');
 }
 
 app.use(session(sessionOptions));
