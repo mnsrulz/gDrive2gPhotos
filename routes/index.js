@@ -48,6 +48,7 @@ router.get('/', async function (req, res, next) {
       fields: "nextPageToken, files"
     }, function (err, response) {
       if (err) {
+        console.log(JSON.stringify(oauth2Client));
         reject(err);
       }
       else {
