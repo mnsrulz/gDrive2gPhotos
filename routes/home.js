@@ -6,8 +6,9 @@ router.get('/', function(req, res, next) {
     if (req.isAuthenticated()){
         res.redirect('/index');
     }
-   res.render('home', { title: 'Express' });
-
+    else{
+        res.render('home', { title: 'Express' });
+    }
 });
 
 router.get('/logout',function(req, res, next){
