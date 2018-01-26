@@ -4,14 +4,11 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-var session = require('express-session')
+var session = require('express-session');
 var passport = require('passport');
 var GoogleStrategy = require('passport-google-oauth2').Strategy;
 
-var index = require('./routes/index');
-var users = require('./routes/users');
-var auth=require('./routes/auth');
-var home=require('./routes/home');
+var RedisStore = require('connect-redis')(session);
 
 var app = express();
 
@@ -19,7 +16,28 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
-app.use(session({ secret: 'my_precious' }));
+var sessionOptions={
+  secret: 'my_precious',
+  resave: false,
+  cookie:{
+    maxAge: 24*60*60*1000 //1day cookie max age
+  }
+};
+
+if (process.env.RedisUrl &&  process.env.RedisPort && process.env.RedisPwd)
+{
+  console.log('redis setup...' + process.env.RedisUrl + ':' + process.env.RedisPort);
+  sessionOptions.store=new RedisStore({
+    host: process.env.RedisUrl,
+    port: process.env.RedisPort,
+    pass: process.env.RedisPwd
+  });
+}
+else{
+  console.log('redis keys/password not found');
+}
+
+app.use(session(sessionOptions));
 //app.use(express.methodOverride());
 
 app.use(passport.initialize());
@@ -32,38 +50,12 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/',home );
-app.use('/users', users);
-app.use('/index',ensureAuthenticated,index);
-app.use('/auth',auth);
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
-
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
-
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/');
-}
 // serialize and deserialize
-passport.serializeUser(function(user, done) {
+passport.serializeUser(function (user, done) {
   done(null, user);
 });
-passport.deserializeUser(function(obj, done) {
+passport.deserializeUser(function (obj, done) {
   done(null, obj);
 });
 module.exports = app;
