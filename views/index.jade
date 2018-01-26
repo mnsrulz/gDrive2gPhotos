@@ -1,6 +1,12 @@
 extends layout
-
 block content
+  link(rel="stylesheet", href="https://tympanus.net/Development/ProgressButtonStyles/css/normalize.css")
+  //- link(rel="stylesheet", href="https://tympanus.net/Development/ProgressButtonStyles/css/demo.css")
+  link(rel="stylesheet", href="https://tympanus.net/Development/ProgressButtonStyles/css/component.css")
+  script(src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js')
+  script(src='https://cdnjs.cloudflare.com/ajax/libs/superagent/3.8.1/superagent.js')
+  script(src="https://tympanus.net/Development/ProgressButtonStyles/js/modernizr.custom.js")
+  script(src="https://tympanus.net/Development/ProgressButtonStyles/js/classie.js")
   h1= title
   p Welcome to #{title}
   table
@@ -20,5 +26,15 @@ block content
               br
               span= o.size
           td
-            a(href="/index/transfer/"+o.id) Transfer
+            h1(id="progress_" + o.id)
+            select(id="ddl_" + o.id)
+              each album in albums
+                option(value="#{album.id}") #{album.title}
+            //- button(onclick='transfer("#{o.id}")', class="progress-button" ,data-style="rotate-side-down", data-perspective data-horizontal) Transfer
+            button(onclick='transfer("#{o.id}")') Transfer
+            button(onclick='viewPhotos("#{o.id}")') View Photos
+  script(src="https://tympanus.net/Development/ProgressButtonStyles/js/progressButton.js")
+  script(src="https://inorganik.github.io/countUp.js/countUp.js")
+  script(src='/javascripts/index.js')
+  
               
