@@ -28,6 +28,7 @@ function getAuth(req) {
 function getAccessTokenAsync(req) {
   return new Promise((resolve, reject) => {
     var oauth2Client = getAuth(req);
+    console.log('Calling getAccessTokenAsync:' + JSON.stringify(oauth2Client));
     oauth2Client.getAccessToken((err, accessToken) => {
       if (err) {
         reject('getAccessTokenAsync: An error occurred while retrieiving the token');
