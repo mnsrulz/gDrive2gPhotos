@@ -13,9 +13,10 @@ passport.use(new GoogleStrategy({
 },
   function (request, refreshToken, accessToken, profile, done) {
     process.nextTick(function () {
-      if(refreshToken) accessToken.refresh_token=refreshToken;
+      if (refreshToken) accessToken.refresh_token = refreshToken;
+      accessToken.expiry_date = ((new Date()).getTime() + (accessToken.expires_in * 1000));
       var userProfile = {
-        token: accessToken, 
+        token: accessToken,
         profile: profile
       };
       return done(null, userProfile);
@@ -25,13 +26,14 @@ passport.use(new GoogleStrategy({
 
 router.get('/google',
   passport.authenticate('google', {
-      authType: 'rerequest', 
-      successRedirect: '/', 
-      scope: ['email', 
-              'https://www.googleapis.com/auth/drive', 
-              'https://picasaweb.google.com/data/', 
-              'https://photos.googleapis.com/data/'], 
-      accessType: 'offline', prompt: 'consent'}));
+    authType: 'rerequest',
+    successRedirect: '/',
+    scope: ['email',
+      'https://www.googleapis.com/auth/drive',
+      'https://picasaweb.google.com/data/',
+      'https://photos.googleapis.com/data/'],
+    accessType: 'offline', prompt: 'consent'
+  }));
 
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/' }),

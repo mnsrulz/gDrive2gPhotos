@@ -28,10 +28,11 @@ function getAuth(req) {
 function getAccessTokenAsync(req) {
   return new Promise((resolve, reject) => {
     var oauth2Client = getAuth(req);
-    console.log('Calling getAccessTokenAsync:' + JSON.stringify(oauth2Client));
+    //console.log('Calling getAccessTokenAsync:' + JSON.stringify(oauth2Client));
     oauth2Client.getAccessToken((err, accessToken) => {
       if (err) {
-        reject('getAccessTokenAsync: An error occurred while retrieiving the token');
+        console.log('getAccessTokenAsync: An error occurred while retrieiving the token. ' + JSON.stringify(err));
+        reject(err);
       }
       else resolve(accessToken);
     });
@@ -49,7 +50,7 @@ router.get('/', async function (req, res, next) {
       fields: "nextPageToken, files"
     }, function (err, response) {
       if (err) {
-        console.log(JSON.stringify(oauth2Client));
+        console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
         reject(err);
       }
       else {
@@ -71,9 +72,15 @@ router.get('/', async function (req, res, next) {
   });
 
   Promise.all([promiseListFiles, promiseListAlbums]).then((result) => {
-    res.render("index", { files: result[0], albums: result[1] });
+    res.render("index", {
+      title: 'Home',
+      files: result[0], albums: result[1]
+    });
   }).catch(() => {
-    res.end('An unknown error occurred');
+    res.render('error', {
+      title: 'Error',
+      message: 'An unknown error occurred... Please retry to reload this page, if problem persist, then logout and login again.'
+    });
     console.log('Error occurred while retrieving files or albums');
   });
 
