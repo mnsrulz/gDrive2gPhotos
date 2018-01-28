@@ -11,7 +11,7 @@ var path = require('path');
 var uuid = require('uuid');
 var got = require('got');
 var Picasa = require('../picasa');
-
+var format = require('format-duration');
 var picasa = new Picasa();
 
 var gauthconfig = oauthConfig.google;
@@ -39,24 +39,50 @@ function getAccessTokenAsync(req) {
   });
 }
 
+function filterAndSort(files) {
+  return files.filter(x => (true && x.mimeType == 'application/octet-stream' || x.mimeType == 'application/x-matroska') || (x.mimeType.startsWith("video")
+    //  && x.videoMediaMetadata
+  )).map(x => {
+    return {
+      id: x.id,
+      name: x.name,
+      thumbnailLink: (x.hasThumbnail == false || x.thumbnailLink.lastIndexOf('s220') === -1) ? x.thumbnailLink : x.thumbnailLink.substr(0, x.thumbnailLink.lastIndexOf("s220")) + "s320",
+      runTime: x.videoMediaMetadata && format(parseInt(x.videoMediaMetadata.durationMillis)),
+      parentId: (x.parents && x.parents[0]) || '',
+      mimeType: x.mimeType
+    };
+  }).sort((f1, f2) => {
+    return f1["parentId"].localeCompare(f2["parentId"]) || f1["name"].localeCompare(f2["name"]);
+  });
+}
 
 /* GET home page. */
 router.get('/', async function (req, res, next) {
   var oauth2Client = getAuth(req);
   var promiseListFiles = new Promise((resolve, reject) => {
-    service.files.list({
-      auth: oauth2Client,
-      pageSize: 100,
-      fields: "nextPageToken, files"
-    }, function (err, response) {
-      if (err) {
-        console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
-        reject(err);
-      }
-      else {
-        resolve(response.files);
-      }
-    });
+    var lstResponse = [];
+    function t(nextPageToken) {
+      service.files.list({
+        auth: oauth2Client,
+        pageSize: 100,
+        fields: "nextPageToken, files",
+        pageToken: nextPageToken
+      }, function (err, response) {
+        if (err) {
+          console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
+          reject(err);
+        }
+        else if (response.nextPageToken) {
+          lstResponse = lstResponse.concat(response.files);
+          t(response.nextPageToken);
+        }
+        else {
+          lstResponse = lstResponse.concat(response.files);
+          resolve(filterAndSort(lstResponse));
+        }
+      });
+    }
+    t();
   });
 
   var promiseListAlbums = new Promise(async (resolve, reject) => {
@@ -85,6 +111,27 @@ router.get('/', async function (req, res, next) {
   });
 
 });
+
+router.get('/player/:docid', async function (req, res, next) {
+  var docId = req.params.docid;
+
+  var apiResponse = await got.get('https://apighost.herokuapp.com/api/gddirect/' + docId);
+  var mediaSource = [];
+  // mediaSource.push({
+  //   src: 'https://doc-0g-3s-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/6dh7gcekpgmh7lurpph2ts4e1vido36m/1517148000000/02681062456505266221/*/0BxBkUUKG5UuZVUdWYU45TTZXOG8?e=download',
+  //   type: 'video/mp4'
+  // });
+
+  mediaSource.push({
+    src: JSON.parse(apiResponse.body).src,
+    type: 'video/mp4'
+  });
+  res.render("player", {
+    mediaSources: mediaSource,
+    poster: JSON.parse(apiResponse.body).thumbnail, 
+    title:"Media Player (Plyr.io)"
+  });
+})
 
 router.get('/temp', function (req, res, next) {
 
