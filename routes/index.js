@@ -60,6 +60,7 @@ function filterAndSort(files) {
 router.get('/', async function (req, res, next) {
   var oauth2Client = getAuth(req);
   var promiseListFiles = new Promise((resolve, reject) => {
+
     var lstResponse = [];
     function t(nextPageToken) {
       service.files.list({
@@ -83,6 +84,7 @@ router.get('/', async function (req, res, next) {
       });
     }
     t();
+
   });
 
   var promiseListAlbums = new Promise(async (resolve, reject) => {
