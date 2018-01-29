@@ -74,6 +74,7 @@ router.get('/', async function (req, res, next) {
           reject(err);
         }
         else if (response.nextPageToken) {
+          console.log('found next page token, '+response.nextPageToken +'... garbbing it');
           lstResponse = lstResponse.concat(response.files);
           t(response.nextPageToken);
         }
@@ -100,6 +101,7 @@ router.get('/', async function (req, res, next) {
   });
 
   Promise.all([promiseListFiles, promiseListAlbums]).then((result) => {
+    console.log('found files and listing pic albums.. jade now..');
     res.render("index", {
       title: 'Home',
       files: result[0], albums: result[1]
