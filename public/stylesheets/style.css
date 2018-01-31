@@ -130,3 +130,8 @@ white-space: nowrap;
 -ms-user-select: none; /* IE10+/Edge */
 user-select: none; /* Standard */
 }
+
+.load-more-link{
+  width: 100%;
+    margin-top: 24px;
+}

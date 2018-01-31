@@ -29,21 +29,23 @@ block content
 
   //- h1= title
   //- p Welcome to #{title}
+  include index_partial.jade
 
-  div(class="mdc-layout-grid") 
-    div(class="mdc-layout-grid__inner") 
-      each o in files
-        div(class="mdc-layout-grid__cell")
-          //- div(class="mdc-card mdc-ripple-surface mdc-ripple-surface--primary mdc-theme--primary demo-surface mdc-elevation--z2")
-          div(class="mdc-card")
-            div
-              section(class="mdc-card__media demo-card__16-9-media", style="background-image: url("+(o.thumbnailLink)+")")
-                div(class="mdc-card__subtitle")= o.runTime
-              section(class="mdc-card__primary")
-                h1(class="mdc-card__title", title=o.name)=o.name
-                span=o.mimeType
-                a(href="/index/player/" + o.id, target="_blank")="Play"
-                //-h2 class="mdc-card__subtitle">Subtitle here</h2>
+  //- !=partial("/index_partial")
+  //- div(class="mdc-layout-grid") 
+  //-   div(class="mdc-layout-grid__inner") 
+  //-     each o in files
+  //-       div(class="mdc-layout-grid__cell")
+  //-         //- div(class="mdc-card mdc-ripple-surface mdc-ripple-surface--primary mdc-theme--primary demo-surface mdc-elevation--z2")
+  //-         div(class="mdc-card")
+  //-           div
+  //-             section(class="mdc-card__media demo-card__16-9-media", style="background-image: url("+(o.thumbnailLink)+")")
+  //-               div(class="mdc-card__subtitle")= o.runTime
+  //-             section(class="mdc-card__primary")
+  //-               h1(class="mdc-card__title", title=o.name)=o.name
+  //-               span=o.mimeType
+  //-               a(href="/index/player/" + o.id, target="_blank")="Play"
+  //-               //-h2 class="mdc-card__subtitle">Subtitle here</h2>
 
   //- each o in files
   //-   div(class="mdc-card demo-card",style="display:none")
@@ -104,6 +106,7 @@ block content
   //- script(src="https://inorganik.github.io/countUp.js/countUp.js")
   //- script(src='/javascripts/index.js')
   script(src='//material-components-web.appspot.com/assets/material-components-web.js')
+  script(src='/javascripts/index.js')
   //- script.
   //-   demoReady(function () {
   //-           var menuEl = document.querySelector('#demo-menu');

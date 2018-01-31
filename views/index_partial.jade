@@ -1,0 +1,17 @@
+div(class="mdc-layout-grid") 
+    div(class="mdc-layout-grid__inner") 
+      each o in files
+        div(class="mdc-layout-grid__cell")
+          //- div(class="mdc-card mdc-ripple-surface mdc-ripple-surface--primary mdc-theme--primary demo-surface mdc-elevation--z2")
+          div(class="mdc-card")
+            div
+              section(class="mdc-card__media demo-card__16-9-media", style="background-image: url("+(o.thumbnailLink)+")")
+                div(class="mdc-card__subtitle")= o.runTime
+              section(class="mdc-card__primary")
+                h1(class="mdc-card__title", title=o.name)=o.name
+                span=o.mimeType
+                a(href="/index/player/" + o.id, target="_blank")="Play"
+                //-h2 class="mdc-card__subtitle">Subtitle here</h2>
+    if nextPageToken
+        button(onclick="loadMore(this)", class="mdc-button mdc-button--raised load-more-link", data-next-page-token=nextPageToken)="Load more..."
+    

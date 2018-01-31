@@ -20,4 +20,11 @@ html
           a(href="/logout" class="mdc-ripple-surface demo-surface material-icons mdc-toolbar__icon", title="Sign Out")="power_settings_new"
                 //- <a href="#" class="material-icons mdc-toolbar__icon" aria-label="Print this page" alt="Print this page">print</a>
                 //- <a href="#" class="material-icons mdc-toolbar__icon" aria-label="Bookmark this page" alt="Bookmark this page">bookmark</a>
+      div(role="progressbar", class="mdc-linear-progress mdc-linear-progress--indeterminate", id="loadMoreProgressBar", style="display:none;")
+          div(class="mdc-linear-progress__buffering-dots")
+          div(class="mdc-linear-progress__buffer")
+          div(class="mdc-linear-progress__bar mdc-linear-progress__primary-bar")
+              span(class="mdc-linear-progress__bar-inner")
+          div(class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar")
+              span(class="mdc-linear-progress__bar-inner")
     block content

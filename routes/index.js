@@ -40,9 +40,7 @@ function getAccessTokenAsync(req) {
 }
 
 function filterAndSort(files) {
-  return files.filter(x => (true && x.mimeType == 'application/octet-stream' || x.mimeType == 'application/x-matroska') || (x.mimeType.startsWith("video")
-    //  && x.videoMediaMetadata
-  )).map(x => {
+  return files.filter(x => x.mimeType == 'application/x-matroska' || x.mimeType.startsWith("video") || x.videoMediaMetadata || x.hasThumbnail).map(x => {
     return {
       id: x.id,
       name: x.name,
@@ -56,37 +54,55 @@ function filterAndSort(files) {
   });
 }
 
+function t(oauth2Client, nextPageToken) {
+  return new Promise((resolve, reject) => {
+    service.files.list({
+      auth: oauth2Client,
+      pageSize: 100,
+      fields: "nextPageToken, files",
+      pageToken: nextPageToken
+    }, function (err, response) {
+      if (err) {
+        console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
+        reject(err);
+      }
+      // else if (response.nextPageToken) {
+      //   console.log('found next page token, '+response.nextPageToken +'... garbbing it');
+      //   lstResponse = lstResponse.concat(response.files);
+      //   t(response.nextPageToken);
+      // }
+      else {
+        resolve({
+          data: filterAndSort(response.files),
+          nextPageToken: response.nextPageToken
+        });
+      }
+    });
+  });
+}
+
+router.get('/ajaxnext/:nextPageToken', async function (req, res, next) {
+  var oauth2Client = getAuth(req);
+  var nextPageToken = req.params.nextPageToken;
+  var result = await t(oauth2Client, nextPageToken).catch(() => {
+    return null;
+  });
+
+  if (result) {
+    res.render('index_partial', {
+      files: result.data,
+      nextPageToken: result.nextPageToken,
+    });
+  }
+  else {
+    res.send({ error: 'Unable to fetch page...' });
+  }
+})
+
 /* GET home page. */
 router.get('/', async function (req, res, next) {
   var oauth2Client = getAuth(req);
-  var promiseListFiles = new Promise((resolve, reject) => {
-
-    var lstResponse = [];
-    function t(nextPageToken) {
-      service.files.list({
-        auth: oauth2Client,
-        pageSize: 100,
-        fields: "nextPageToken, files",
-        pageToken: nextPageToken
-      }, function (err, response) {
-        if (err) {
-          console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
-          reject(err);
-        }
-        else if (response.nextPageToken) {
-          console.log('found next page token, '+response.nextPageToken +'... garbbing it');
-          lstResponse = lstResponse.concat(response.files);
-          t(response.nextPageToken);
-        }
-        else {
-          lstResponse = lstResponse.concat(response.files);
-          resolve(filterAndSort(lstResponse));
-        }
-      });
-    }
-    t();
-
-  });
+  var promiseListFiles = t(oauth2Client);
 
   var promiseListAlbums = new Promise(async (resolve, reject) => {
     var accessToken = await getAccessTokenAsync(req);
@@ -104,7 +120,9 @@ router.get('/', async function (req, res, next) {
     console.log('found files and listing pic albums.. jade now..');
     res.render("index", {
       title: 'Home',
-      files: result[0], albums: result[1]
+      files: result[0].data,
+      nextPageToken: result[0].nextPageToken,
+      albums: result[1]
     });
   }).catch(() => {
     res.render('error', {
@@ -132,8 +150,8 @@ router.get('/player/:docid', async function (req, res, next) {
   });
   res.render("player", {
     mediaSources: mediaSource,
-    poster: JSON.parse(apiResponse.body).thumbnail, 
-    title:"Media Player (Plyr.io)"
+    poster: JSON.parse(apiResponse.body).thumbnail,
+    title: "Media Player (Plyr.io)"
   });
 })
 
