@@ -291,22 +291,24 @@ async function createVideo(photoRequest, accessToken) {
 }
 
 async function uploadToGooglePhoto(fileId, photoLocation, accessToken, rangeStart, fileSizeToUpload, totalSize) {
+  console.log(`uploadToGooglePhoto input : ${JSON.stringify(arguments)}`);
   return new Promise((resolve, reject) => {
     got.stream(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
       encoding: null,
       headers: {
         'Authorization': 'Bearer ' + accessToken,
-        'Range': `bytes = ${rangeStart}-${fileSizeToUpload - 1}`
+        'Range': `bytes = ${rangeStart}-${rangeStart + fileSizeToUpload - 1}`
       }
     }).on('data', function (chunk) {
       //bytesReceived += chunk.length;
     }).on('response', function (gotresponseinner) {
+      console.log('gotresponseinner.headers: '+ JSON.stringify(gotresponseinner.headers) )
       //var interval;
       gotresponseinner.pipe(got.stream(photoLocation, {
         method: "PUT",
         headers: {
           'Content-Length': fileSizeToUpload,
-          'Content-Range': `bytes ${rangeStart}-${fileSizeToUpload - 1}/${totalSize}`,
+          'Content-Range': `bytes ${rangeStart}-${rangeStart + fileSizeToUpload - 1}/${totalSize}`,
           //'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + gdriveInfo.size,
           'Expect': ''
         }
@@ -340,8 +342,14 @@ async function uploadToGooglePhoto(fileId, photoLocation, accessToken, rangeStar
         console.log('Status Code: ' + whateverresponse.statusCode);
         resolve({ status: 'OK' });
       }).on('error', function (requestUploadErr) {
-        console.log('error occurred while uploading file.. ' + requestUploadErr);
-        reject({ error: 'An error occurred: ', errorObject: requestUploadErr });
+        console.log('error occurred while uploading file.. ' + JSON.stringify(requestUploadErr));
+        if(requestUploadErr.statusCode===308) {
+          console.log('continuing as code is 308');
+          resolve({ status: 'OK' });
+        }
+        else{
+          reject({ error: 'An error occurred: ', errorObject: requestUploadErr });
+        }
         // downloadUploadProgress[requestId].requestId = requestId;
         // downloadUploadProgress[requestId].requestTime = requestRecvdTime;
         // downloadUploadProgress[requestId].status = "Error";
@@ -393,7 +401,7 @@ router.get('/transfer/:fileid/:albumid', async function (req, res, next) {
   while (bytesRemaining > 0) {
     var fileSizeToUpload = bytesRemaining > maxFileToUpload ? maxChunkToUpload : bytesRemaining;
     await uploadToGooglePhoto(fileId, photoCreateRes.photoLocation, accessToken, rangeStart, fileSizeToUpload, gdriveInfo.size);
-    rangeStart = rangeStart + fileSizeToUpload - 1;
+    rangeStart = rangeStart + fileSizeToUpload;
     bytesRemaining = bytesRemaining - fileSizeToUpload;
   }
 });
