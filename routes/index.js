@@ -241,114 +241,161 @@ router.get('/album/:albumid', function (req, res, next) {
 
 })
 
-router.get('/transfer/:fileid/:albumid', function (req, res, next) {
+async function getGoogleDriveMediaInfo(fileId, oauth2Client) {
+  return new Promise((resolve, reject) => {
+    service.files.get({
+      auth: oauth2Client,
+      'fileId': fileId,
+      "fields": "*"
+    }, function (err, response) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
+
+async function createVideo(photoRequest, accessToken) {
+  // photoRequest.albumId;
+  // photoRequest.size;
+  // photoRequest.mimeType;
+  // photoRequest.name;
+  // photoRequest.gdocId;
+
+  var pathToAlbum = 'https://photos.googleapis.com/data/upload/resumable/media/create-session/feed/api/user/default/albumid/' + photoRequest.albumId;
+  var photoCreateBody = `<?xml version="1.0" encoding="UTF-8"?>
+                      <entry xmlns="http://www.w3.org/2005/Atom" xmlns:gphoto="http://schemas.google.com/photos/2007">
+                        <category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/photos/2007#photo"/>
+                        <title>${photoRequest.name}</title>
+                        <summary>GP_${photoRequest.gdocId}</summary>
+                        <gphoto:timestamp>1475517389000</gphoto:timestamp>
+                      </entry>`;
+
+  var photoCreateResponse = await axios.post(pathToAlbum, photoCreateBody, {
+    headers: {
+      'Authorization': 'Bearer ' + accessToken,
+      'Content-Type': 'application/atom+xml; charset=utf-8',
+      'X-Upload-Content-Length': photoRequest.size,
+      'X-Upload-Content-Type': photoRequest.mimeType,
+      'Slug': 'GP_' + photoRequest.gdocId,
+      'X-Forwarded-By': 'me',
+      'data-binary': '@-',
+      'GData-Version': '3'
+    }
+  });
+  return {
+    photoLocation: photoCreateResponse.headers.location
+  };
+}
+
+async function uploadToGooglePhoto(fileId, photoLocation, accessToken, rangeStart, fileSizeToUpload, totalSize) {
+  return new Promise((resolve, reject) => {
+    got.stream(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      encoding: null,
+      headers: {
+        'Authorization': 'Bearer ' + accessToken,
+        'Range': `bytes = ${rangeStart}-${fileSizeToUpload - 1}`
+      }
+    }).on('data', function (chunk) {
+      //bytesReceived += chunk.length;
+    }).on('response', function (gotresponseinner) {
+      //var interval;
+      gotresponseinner.pipe(got.stream(photoLocation, {
+        method: "PUT",
+        headers: {
+          'Content-Length': fileSizeToUpload,
+          'Content-Range': `bytes ${rangeStart}-${fileSizeToUpload - 1}/${totalSize}`,
+          //'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + gdriveInfo.size,
+          'Expect': ''
+        }
+      }).on('request', function (uploadRequest) {
+        console.log('Upload request initiated...');
+        // var initRequestBytesWritten = uploadRequest.connection.bytesWritten;
+        // interval = setInterval(function () {
+        //   var actualDataBytesWritten = (uploadRequest.connection.bytesWritten - initRequestBytesWritten);
+        //   //let's not concentrate on the data to sent, send whichever we got now...
+        //   downloadUploadProgress[requestId] = {
+        //     requestId: requestId,
+        //     requestTime: requestRecvdTime,
+        //     size: response.size,
+        //     recvd: bytesReceived,
+        //     sent: actualDataBytesWritten,
+        //     lastUpdate: new Date(), status: "In Progress"
+        //   };
+        //   req.io.in(requestId).emit('progress', downloadUploadProgress[requestId]);
+        //   console.log('Download Progress' + (bytesReceived) + '/' + response.size + ', Upload Progress: ' + actualDataBytesWritten);
+        // }, 500);
+      }).on('response', function (whateverresponse) {
+        // clearInterval(interval);
+        // downloadUploadProgress[requestId].requestId = requestId;
+        // downloadUploadProgress[requestId].requestTime = requestRecvdTime;
+        // downloadUploadProgress[requestId].status = "Completed";
+        // downloadUploadProgress[requestId].lastUpdate = new Date();
+        // downloadUploadProgress[requestId].statusCode = whateverresponse.statusCode;
+
+        // req.io.in(requestId).emit('progress', downloadUploadProgress[requestId]);
+        console.log('Upload request response recvd.');
+        console.log('Status Code: ' + whateverresponse.statusCode);
+        resolve({ status: 'OK' });
+      }).on('error', function (requestUploadErr) {
+        console.log('error occurred while uploading file.. ' + requestUploadErr);
+        reject({ error: 'An error occurred: ', errorObject: requestUploadErr });
+        // downloadUploadProgress[requestId].requestId = requestId;
+        // downloadUploadProgress[requestId].requestTime = requestRecvdTime;
+        // downloadUploadProgress[requestId].status = "Error";
+        // downloadUploadProgress[requestId].lastUpdate = new Date();
+        // downloadUploadProgress[requestId].statusCode = whateverresponse.statusCode;
+        // downloadUploadProgress[requestId].errorMessage = requestUploadErr;
+
+        // req.io.in(requestId).emit('progress', downloadUploadProgress[requestId]);
+
+        // clearInterval(interval);
+        //downloadUploadProgress[requestId].status = "Error occurred: " + requestUploadErr;
+      }));
+    });
+  });
+
+}
+
+router.get('/transfer/:fileid/:albumid', async function (req, res, next) {
   var oauth2Client = getAuth(req);
   var fileId = req.params.fileid;
   var albumId = req.params.albumid;
-  service.files.get({
-    auth: oauth2Client,
-    'fileId': fileId,
-    "fields": "*"
-  }, async function (err, response) {
-    var pathToAlbum = 'https://photos.googleapis.com/data/upload/resumable/media/create-session/feed/api/user/default/albumid/' + albumId;
-    var accessToken = await getAccessTokenAsync(req);
-    var photoCreateBody = '<?xml version="1.0" encoding="UTF-8"?><entry xmlns="http://www.w3.org/2005/Atom" xmlns:gphoto="http://schemas.google.com/photos/2007"><category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/photos/2007#photo"/><title>' + 'GP_' + fileId + '</title><summary>' + response.name + '</summary><gphoto:timestamp>1475517389000</gphoto:timestamp></entry>';
 
-    var photoCreateResponse = await axios.post(pathToAlbum, photoCreateBody, {
-      headers: {
-        'Authorization': 'Bearer ' + accessToken,
-        'Content-Type': 'application/atom+xml; charset=utf-8',
-        'X-Upload-Content-Length': response.size,
-        'X-Upload-Content-Type': response.mimeType,
-        'Slug': 'GP_' + fileId,
-        'X-Forwarded-By': 'me',
-        'data-binary': '@-',
-        'GData-Version': '3'
-      }
-    });
-    var requestId = uuid.v4();
-    var requestRecvdTime = new Date();
-    downloadUploadProgress[requestId] = {};
+  var gdriveInfo = await getGoogleDriveMediaInfo(fileId, oauth2Client);
+  var accessToken = await getAccessTokenAsync(req);
 
-    var bytesReceived = 0; var readbytes = 0;
+  var photoCreateRes = await createVideo({
+    albumId: albumId,
+    size: gdriveInfo.size,
+    mimeType: gdriveInfo.mimeType,
+    name: gdriveInfo.name,
+    gdocId: fileId
+  }, accessToken);
 
-    /*
-    https://www.googleapis.com/drive/v3/files/FILEID?alt=media
-    Authorization: Bearer <ACCESS_TOKEN>
-    */
 
-    var gotreadstream = got.stream('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
-      encoding: null,
-      headers: {
-        'Authorization': 'Bearer ' + oauth2Client.credentials.access_token
-      }
-    })
-      .on('data', function (chunk) {
-        try {
-          bytesReceived += chunk.length;
-        } catch (error) {
-          console.log('error occurred on data. got response');
-        }
-      })
-      .on('end', function () {
-        console.log('Download request completed');
-      })
-      .on('response', function (gotresponseinner) {
-        var interval;
-        gotresponseinner.pipe(got.stream(photoCreateResponse.headers.location, {
-          method: "PUT",
-          headers: {
-            'Content-Length': response.size,
-            'Content-Range': 'bytes 0-' + (parseInt(response.size) - 1) + '/' + response.size,
-            'Expect': ''
-          }
-        }).on('request', function (uploadRequest) {
-          console.log('Upload request initiated...');
-          var initRequestBytesWritten = uploadRequest.connection.bytesWritten;
-          interval = setInterval(function () {
-            var actualDataBytesWritten = (uploadRequest.connection.bytesWritten - initRequestBytesWritten);
-            //let's not concentrate on the data to sent, send whichever we got now...
-            downloadUploadProgress[requestId] = {
-              requestId: requestId,
-              requestTime: requestRecvdTime,
-              size: response.size,
-              recvd: bytesReceived,
-              sent: actualDataBytesWritten,
-              lastUpdate: new Date(), status: "In Progress"
-            };
-            req.io.in(requestId).emit('progress', downloadUploadProgress[requestId]);
-            console.log('Download Progress' + (bytesReceived) + '/' + response.size + ', Upload Progress: ' + actualDataBytesWritten);
-          }, 500);
-        }).on('response', function (whateverresponse) {
-          clearInterval(interval);
-          downloadUploadProgress[requestId].requestId = requestId;
-          downloadUploadProgress[requestId].requestTime = requestRecvdTime;
-          downloadUploadProgress[requestId].status = "Completed";
-          downloadUploadProgress[requestId].lastUpdate = new Date();
-          downloadUploadProgress[requestId].statusCode = whateverresponse.statusCode;
+  //gets the gdrive file size to upload. If less then 900MB then we do it in a single go.
+  //If size greater than 900MB then we will upload it in a 500MB chunks.
 
-          req.io.in(requestId).emit('progress', downloadUploadProgress[requestId]);
-          console.log('Upload request response recvd.');
-          console.log('Status Code: ' + whateverresponse.statusCode);
-        }).on('error', function (requestUploadErr) {
-          console.log('error occurred while uploading file.. ' + requestUploadErr);
+  var requestId = uuid.v4();
+  // var requestRecvdTime = new Date();
+  // downloadUploadProgress[requestId] = {};
+  // var bytesReceived = 0; var readbytes = 0;
 
-          downloadUploadProgress[requestId].requestId = requestId;
-          downloadUploadProgress[requestId].requestTime = requestRecvdTime;
-          downloadUploadProgress[requestId].status = "Error";
-          downloadUploadProgress[requestId].lastUpdate = new Date();
-          downloadUploadProgress[requestId].statusCode = whateverresponse.statusCode;
-          downloadUploadProgress[requestId].errorMessage = requestUploadErr;
+  res.send({ requestId: requestId });
 
-          req.io.in(requestId).emit('progress', downloadUploadProgress[requestId]);
-
-          clearInterval(interval);
-          //downloadUploadProgress[requestId].status = "Error occurred: " + requestUploadErr;
-        }));
-      });
-
-    res.send({ requestId: requestId });
-  });
+  var bytesRemaining = gdriveInfo.size;
+  var rangeStart = 0;
+  const maxFileToUpload = 900 * 1024 * 1024;  //900MB
+  const maxChunkToUpload = 500 * 1024 * 1024; //500MB
+  while (bytesRemaining > 0) {
+    var fileSizeToUpload = bytesRemaining > maxFileToUpload ? maxChunkToUpload : bytesRemaining;
+    await uploadToGooglePhoto(fileId, photoCreateRes.photoLocation, accessToken, rangeStart, fileSizeToUpload, gdriveInfo.size);
+    rangeStart = rangeStart + fileSizeToUpload - 1;
+    bytesRemaining = bytesRemaining - fileSizeToUpload;
+  }
 });
 
 module.exports = router;
