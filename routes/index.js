@@ -396,8 +396,8 @@ router.get('/transfer/:fileid/:albumid', async function (req, res, next) {
 
   var bytesRemaining = gdriveInfo.size;
   var rangeStart = 0;
-  const maxFileToUpload = 900 * 1024 * 1024;  //900MB
-  const maxChunkToUpload = 500 * 1024 * 1024; //500MB
+  const maxFileToUpload = 500 * 1024 * 1024;  //900MB
+  const maxChunkToUpload = 200 * 1024 * 1024; //500MB
   while (bytesRemaining > 0) {
     var fileSizeToUpload = bytesRemaining > maxFileToUpload ? maxChunkToUpload : bytesRemaining;
     await uploadToGooglePhoto(fileId, photoCreateRes.photoLocation, accessToken, rangeStart, fileSizeToUpload, gdriveInfo.size);
