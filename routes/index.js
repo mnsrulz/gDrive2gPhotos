@@ -398,11 +398,11 @@ router.get('/transfer/:fileid/:albumid', async function (req, res, next) {
 
   res.send({ requestId: requestId });
 
-  const maxFileToUpload = 1024 * 1024 * 1024;  //1GB
-  const maxChunkToUpload = 1024 * 1024 * 1024; //1GB
+  const maxFileToUpload = 999 * 1024 * 1024;  //1GB
+  const maxChunkToUpload = 999 * 1024 * 1024; //1GB
 
   //see if google processes this?
-  gdriveInfo.size = gdriveInfo.size > maxFileToUpload ? maxFileToUpload : gdriveInfo.size;
+  gdriveInfo.size = gdriveInfo.size >= maxFileToUpload ? maxFileToUpload : gdriveInfo.size;
 
   var bytesRemaining = gdriveInfo.size;
   var rangeStart = 0;
