@@ -251,7 +251,11 @@ async function getGoogleDriveMediaInfo(fileId, oauth2Client) {
       if (err) {
         reject(err);
       } else {
-        resolve(response);
+        resolve({
+          name: response.name,
+          size: response.size,
+          mimeType: response.mimeType
+        });
       }
     });
   });
@@ -302,7 +306,7 @@ async function uploadToGooglePhoto(fileId, photoLocation, accessToken, rangeStar
     }).on('data', function (chunk) {
       //bytesReceived += chunk.length;
     }).on('response', function (gotresponseinner) {
-      console.log('gotresponseinner.headers: '+ JSON.stringify(gotresponseinner.headers) )
+      console.log('gotresponseinner.headers: ' + JSON.stringify(gotresponseinner.headers))
       //var interval;
       gotresponseinner.pipe(got.stream(photoLocation, {
         method: "PUT",
@@ -343,11 +347,11 @@ async function uploadToGooglePhoto(fileId, photoLocation, accessToken, rangeStar
         resolve({ status: 'OK' });
       }).on('error', function (requestUploadErr) {
         console.log('error occurred while uploading file.. ' + JSON.stringify(requestUploadErr));
-        if(requestUploadErr.statusCode===308) {
+        if (requestUploadErr.statusCode === 308) {
           console.log('continuing as code is 308');
           resolve({ status: 'OK' });
         }
-        else{
+        else {
           reject({ error: 'An error occurred: ', errorObject: requestUploadErr });
         }
         // downloadUploadProgress[requestId].requestId = requestId;
@@ -394,13 +398,18 @@ router.get('/transfer/:fileid/:albumid', async function (req, res, next) {
 
   res.send({ requestId: requestId });
 
+  const maxFileToUpload = 1024 * 1024 * 1024;  //1GB
+  const maxChunkToUpload = 1024 * 1024 * 1024; //1GB
+
+  //see if google processes this?
+  gdriveInfo.size = gdriveInfo.size > maxFileToUpload ? maxFileToUpload : gdriveInfo.size;
+
   var bytesRemaining = gdriveInfo.size;
   var rangeStart = 0;
-  const maxFileToUpload = 500 * 1024 * 1024;  //900MB
-  const maxChunkToUpload = 200 * 1024 * 1024; //500MB
   while (bytesRemaining > 0) {
     var fileSizeToUpload = bytesRemaining > maxFileToUpload ? maxChunkToUpload : bytesRemaining;
     await uploadToGooglePhoto(fileId, photoCreateRes.photoLocation, accessToken, rangeStart, fileSizeToUpload, gdriveInfo.size);
+
     rangeStart = rangeStart + fileSizeToUpload;
     bytesRemaining = bytesRemaining - fileSizeToUpload;
   }
