@@ -395,7 +395,7 @@ router.get('/transfer/:fileid/:albumid', async function (req, res, next) {
   };
 
   picasa.postVideo(accessToken, albumId, videoData, (a, b, c, d, e) => {
-    console.log(`this.bytes: ${bytesReceived}, gotStream.isPaused: ${gotStream.isPaused()}, ` + JSON.stringify(a));
+    console.log(JSON.stringify(a));
   });
 
   res.send('done!!!');
