@@ -386,16 +386,18 @@ router.get('/transfer/:fileid/:albumid', async function (req, res, next) {
     }
   });
 
-  var videoData = {
-    body: gotStream,
-    contentLength: gdriveInfo.size,
-    mimeType: gdriveInfo.mimeType,
-    title: gdriveInfo.name,
-    summary: `GP_${fileId}`
-  };
+  gotStream.on('response', () => {
+    var videoData = {
+      body: gotStream,
+      contentLength: gdriveInfo.size,
+      mimeType: gdriveInfo.mimeType,
+      title: gdriveInfo.name,
+      summary: `GP_${fileId}`
+    };
 
-  picasa.postVideo(accessToken, albumId, videoData, (a, b, c, d, e) => {
-    console.log(JSON.stringify(a));
+    picasa.postVideo(accessToken, albumId, videoData, (a, b, c, d, e) => {
+      console.log(JSON.stringify(a));
+    });
   });
 
   res.send('done!!!');
