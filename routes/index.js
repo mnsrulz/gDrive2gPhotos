@@ -10,7 +10,7 @@ var fs = require('fs');
 var path = require('path');
 var uuid = require('uuid');
 var got = require('got');
-var Picasa = require('../picasa');
+var Picasa = require('picasa-extended');
 var format = require('format-duration');
 var picasa = new Picasa();
 
@@ -372,47 +372,35 @@ async function uploadToGooglePhoto(fileId, photoLocation, accessToken, rangeStar
 }
 
 router.get('/transfer/:fileid/:albumid', async function (req, res, next) {
+
   var oauth2Client = getAuth(req);
   var fileId = req.params.fileid;
   var albumId = req.params.albumid;
 
   var gdriveInfo = await getGoogleDriveMediaInfo(fileId, oauth2Client);
   var accessToken = await getAccessTokenAsync(req);
+  var bytesReceived = 0; var flag = false;
+  var gotStream = got.stream(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    encoding: null,
+    headers: {
+      'Authorization': 'Bearer ' + accessToken
+    }
+  });
 
-  var photoCreateRes = await createVideo({
-    albumId: albumId,
-    size: gdriveInfo.size,
+  var videoData = {
+    body: gotStream,
+    contentLength: gdriveInfo.size,
     mimeType: gdriveInfo.mimeType,
-    name: gdriveInfo.name,
-    gdocId: fileId
-  }, accessToken);
+    title: gdriveInfo.name,
+    summary: `GP_${fileId}`
+  };
 
+  picasa.postVideo(accessToken, albumId, videoData, (a, b, c, d, e) => {
+    console.log(`this.bytes: ${bytesReceived}, gotStream.isPaused: ${gotStream.isPaused()}, ` + JSON.stringify(a));
+  });
 
-  //gets the gdrive file size to upload. If less then 900MB then we do it in a single go.
-  //If size greater than 900MB then we will upload it in a 500MB chunks.
+  res.send('done!!!');
 
-  var requestId = uuid.v4();
-  // var requestRecvdTime = new Date();
-  // downloadUploadProgress[requestId] = {};
-  // var bytesReceived = 0; var readbytes = 0;
-
-  res.send({ requestId: requestId });
-
-  const maxFileToUpload = 999 * 1024 * 1024;  //1GB
-  const maxChunkToUpload = 999 * 1024 * 1024; //1GB
-
-  //see if google processes this?
-  gdriveInfo.size = gdriveInfo.size >= maxFileToUpload ? maxFileToUpload : gdriveInfo.size;
-
-  var bytesRemaining = gdriveInfo.size;
-  var rangeStart = 0;
-  while (bytesRemaining > 0) {
-    var fileSizeToUpload = bytesRemaining > maxFileToUpload ? maxChunkToUpload : bytesRemaining;
-    await uploadToGooglePhoto(fileId, photoCreateRes.photoLocation, accessToken, rangeStart, fileSizeToUpload, gdriveInfo.size);
-
-    rangeStart = rangeStart + fileSizeToUpload;
-    bytesRemaining = bytesRemaining - fileSizeToUpload;
-  }
 });
 
 module.exports = router;
