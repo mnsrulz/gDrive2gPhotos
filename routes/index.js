@@ -8,7 +8,6 @@ var axios = require('axios');
 var request = require('request');
 var fs = require('fs');
 var path = require('path');
-var uuid = require('uuid');
 var got = require('got');
 var Picasa = require('picasa-extended');
 var format = require('format-duration');
