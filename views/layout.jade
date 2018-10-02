@@ -3,8 +3,10 @@ html
   head
     title= title
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    script(src="https://raw.githubusercontent.com/material-components/material-components-web/master/demos/ready.js")
     link(rel="stylesheet", href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css")
     link(rel="stylesheet", href="https://fonts.googleapis.com/icon?family=Material+Icons")
+    script(src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js")
     block header
   body
     header(class="mdc-toolbar mdc-toolbar--fixed")
@@ -17,6 +19,7 @@ html
           //-   <img src="/images/ic_component_24px_white.svg">
           //- </span>
         section(class="mdc-toolbar__section mdc-toolbar__section--align-end", role="toolbar")
+          a(href="/addlink" class="mdc-ripple-surface demo-surface material-icons mdc-toolbar__icon", title="Add")="power_settings_new"
           a(href="/logout" class="mdc-ripple-surface demo-surface material-icons mdc-toolbar__icon", title="Sign Out")="power_settings_new"
                 //- <a href="#" class="material-icons mdc-toolbar__icon" aria-label="Print this page" alt="Print this page">print</a>
                 //- <a href="#" class="material-icons mdc-toolbar__icon" aria-label="Bookmark this page" alt="Bookmark this page">bookmark</a>

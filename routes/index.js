@@ -12,6 +12,7 @@ var got = require('got');
 var Picasa = require('picasa-extended');
 var format = require('format-duration');
 var picasa = new Picasa();
+var url = require('url');
 
 var gauthconfig = oauthConfig.google;
 
@@ -240,6 +241,48 @@ router.get('/album/:albumid', function (req, res, next) {
 
 })
 
+router.get('/addlink', async function (req, res, next) {
+  res.render("addlink", {
+
+  });
+})
+
+router.post('/addlink', async function (req, res, next) {
+  var gdlink = req.body.gdlink;
+  var fileId = extractFileId(gdlink);
+  if (fileId) {
+    var oauth2Client = getAuth(req);
+    var gdriveInfo;
+    try {
+      gdriveInfo = await getGoogleDriveMediaInfo(fileId, oauth2Client);
+    } catch (error) {
+      gdriveInfo = "Error!!!"
+    }
+    res.render("addlink", {
+      fileInfo: gdriveInfo
+    });
+  } else {
+    res.render("addlink", {
+      error: "Invalid google drive link"
+    });
+  }
+})
+
+function extractFileId(gdlink) {
+  var fileId;
+  var queryData = url.parse(gdlink, true).query;
+  if (queryData.id) {
+    fileId = queryData.id;
+  }
+  else {
+    var parts = gdlink.match(/\/d\/(.+)\//);
+    if (parts && parts.length == 2) {
+      fileId = parts[1];
+    }
+  }
+  return fileId;
+}
+
 async function getGoogleDriveMediaInfo(fileId, oauth2Client) {
   return new Promise((resolve, reject) => {
     service.files.get({
@@ -250,11 +293,12 @@ async function getGoogleDriveMediaInfo(fileId, oauth2Client) {
       if (err) {
         reject(err);
       } else {
-        resolve({
-          name: response.name,
-          size: response.size,
-          mimeType: response.mimeType
-        });
+        resolve(response);
+        // resolve({
+        //   name: response.name,
+        //   size: response.size,
+        //   mimeType: response.mimeType
+        // });
       }
     });
   });
