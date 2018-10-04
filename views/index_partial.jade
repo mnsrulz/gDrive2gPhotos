@@ -11,6 +11,7 @@ div(class="mdc-layout-grid")
                 h1(class="mdc-card__title", title=o.name)=o.name
                 span=o.mimeType
                 a(href="/index/player/" + o.id, target="_blank")="Play"
+                a(href="/index/getinfo?fileid=" + o.id, target="_blank")="Get Info"
                 //-h2 class="mdc-card__subtitle">Subtitle here</h2>
     if nextPageToken
         button(onclick="loadMore(this)", class="mdc-button mdc-button--raised load-more-link", data-next-page-token=nextPageToken)="Load more..."

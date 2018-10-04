@@ -247,9 +247,15 @@ router.get('/addlink', async function (req, res, next) {
   });
 })
 
-router.post('/addlink', async function (req, res, next) {
-  var gdlink = req.body.gdlink;
-  var fileId = extractFileId(gdlink);
+// router.get('/getinfo', async function (req, res, next) {
+//   res.render("getinfo", {
+
+//   });
+// })
+
+router.get('/getinfo', async function (req, res, next) {
+  var fileId = req.query.fileid;
+  fileId = extractFileId(fileId);
   if (fileId) {
     var oauth2Client = getAuth(req);
     var gdriveInfo;
@@ -258,8 +264,29 @@ router.post('/addlink', async function (req, res, next) {
     } catch (error) {
       gdriveInfo = "Error!!!"
     }
-    res.render("addlink", {
+    res.render("getinfo", {
       fileInfo: gdriveInfo
+    });
+  } else {
+    res.render("getinfo", {
+      error: "Invalid google drive link"
+    });
+  }
+});
+
+router.post('/addlink', async function (req, res, next) {
+  var gdlink = req.body.gdlink;
+  var fileId = extractFileId(gdlink);
+  if (fileId) {
+    var oauth2Client = getAuth(req);
+    try {
+      var fileAddResponse = await addFileToMyDrive(fileId, oauth2Client);
+    }
+    catch (error) {
+      fileAddResponse = error;
+    }
+    res.render("addlink", {
+      fileInfo: fileAddResponse
     });
   } else {
     res.render("addlink", {
@@ -269,18 +296,25 @@ router.post('/addlink', async function (req, res, next) {
 })
 
 function extractFileId(gdlink) {
-  var fileId;
-  var queryData = url.parse(gdlink, true).query;
-  if (queryData.id) {
-    fileId = queryData.id;
-  }
-  else {
-    var parts = gdlink.match(/\/d\/(.+)\//);
-    if (parts && parts.length == 2) {
-      fileId = parts[1];
+  if (gdlink) {
+    var fileId;
+    var parsedUrl = url.parse(gdlink, true);
+    var queryData = parsedUrl.query;
+    if (queryData.id) {
+      fileId = queryData.id;
     }
+    else {
+      var parts = gdlink.match(/\/d\/(.+)\//);
+      if (parts && parts.length == 2) {
+        fileId = parts[1];
+      }else{
+        fileId = gdlink;
+      }
+    }
+    return fileId;
+  } else {
+    return null;
   }
-  return fileId;
 }
 
 async function getGoogleDriveMediaInfo(fileId, oauth2Client) {
@@ -294,15 +328,44 @@ async function getGoogleDriveMediaInfo(fileId, oauth2Client) {
         reject(err);
       } else {
         resolve(response);
-        // resolve({
-        //   name: response.name,
-        //   size: response.size,
-        //   mimeType: response.mimeType
-        // });
       }
     });
   });
 }
+
+async function addFileToMyDrive(fileId, oauth2Client) {
+  var rootFolder = await getGoogleDriveMediaInfo('root', oauth2Client);
+  return new Promise((resolve, reject) => {
+    service.files.get({
+      auth: oauth2Client,
+      fileId: fileId,
+      fields: 'parents'
+    }, function (err, file) {
+      if (err) {
+        reject(err);
+      } else {
+        if (file.parents && file.parents.indexOf(rootFolder.id)) {
+          reject('File already exists in this folder...');
+        }
+        else {
+          service.files.update({
+            auth: oauth2Client,
+            fileId: fileId,
+            addParents: 'root',
+            fields: 'id, parents'
+          }, function (err, file) {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(file);
+            }
+          });
+        }
+      }
+    });
+  });
+}
+
 
 async function createVideo(photoRequest, accessToken) {
   // photoRequest.albumId;
