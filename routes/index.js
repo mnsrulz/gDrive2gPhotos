@@ -36,7 +36,8 @@ function filterAndSort(files) {
       thumbnailLink: (x.hasThumbnail == false || x.thumbnailLink.lastIndexOf('s220') === -1) ? x.thumbnailLink : x.thumbnailLink.substr(0, x.thumbnailLink.lastIndexOf("s220")) + "s320",
       runTime: x.videoMediaMetadata && format(parseInt(x.videoMediaMetadata.durationMillis)),
       parentId: (x.parents && x.parents[0]) || '',
-      mimeType: x.mimeType
+      mimeType: x.mimeType,
+      iconLink: x.iconLink
     };
   }).sort((f1, f2) => {
     return f1["parentId"].localeCompare(f2["parentId"]) || f1["name"].localeCompare(f2["name"]);
