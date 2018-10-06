@@ -1,8 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var google = require('googleapis');
-var googleAuth = require('google-auth-library');
-var oauthConfig = require('../oauthConfig');
+// var googleAuth = require('google-auth-library');
+// var oauthConfig = require('../oauthConfig');
 var service = google.drive('v3');
 var axios = require('axios');
 var request = require('request');
@@ -14,29 +14,18 @@ var format = require('format-duration');
 var picasa = new Picasa();
 var url = require('url');
 
-var gauthconfig = oauthConfig.google;
+//var gauthconfig = oauthConfig.google;
 
 var downloadUploadProgress = [];
 
+var googleAuthWrapper = require('../routes/googleauthwrapper');
+
 function getAuth(req) {
-  var auth = new googleAuth();
-  var oauth2Client = new auth.OAuth2(gauthconfig.clientID, gauthconfig.clientSecret, gauthconfig.callbackURL);
-  oauth2Client.credentials = req.user.token;
-  return oauth2Client;
+  return googleAuthWrapper.getAuth(req);
 }
 
 function getAccessTokenAsync(req) {
-  return new Promise((resolve, reject) => {
-    var oauth2Client = getAuth(req);
-    //console.log('Calling getAccessTokenAsync:' + JSON.stringify(oauth2Client));
-    oauth2Client.getAccessToken((err, accessToken) => {
-      if (err) {
-        console.log('getAccessTokenAsync: An error occurred while retrieiving the token. ' + JSON.stringify(err));
-        reject(err);
-      }
-      else resolve(accessToken);
-    });
-  });
+  return googleAuthWrapper.getAccessTokenAsync(req);
 }
 
 function filterAndSort(files) {
@@ -307,7 +296,7 @@ function extractFileId(gdlink) {
       var parts = gdlink.match(/\/d\/(.+)\//);
       if (parts && parts.length == 2) {
         fileId = parts[1];
-      }else{
+      } else {
         fileId = gdlink;
       }
     }
