@@ -62,8 +62,8 @@ router.get('/progressInfo/:runId', async function (req, res, next) {
 });
 
 var runCollection = {};
-runCollection["hello1"] = { fileId: "file001", fileName: "filename01", progressId: "p21" };
-runCollection["hello2"] = { fileId: "file002", fileName: "filename02", progressId: "pr311" };
+// runCollection["hello1"] = { fileId: "file001", fileName: "filename01", progressId: "p21" };
+// runCollection["hello2"] = { fileId: "file002", fileName: "filename02", progressId: "pr311" };
 
 // authorize(JSON.parse(content), {
 //   'params': { 'part': 'snippet,status' }, 'properties': {
