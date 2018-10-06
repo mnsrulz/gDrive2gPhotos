@@ -32,34 +32,34 @@ server.on('listening', onListening);
 
 var index = require('../routes/index');
 var users = require('../routes/users');
-var auth=require('../routes/auth');
-var home=require('../routes/home');
-
+var auth = require('../routes/auth');
+var home = require('../routes/home');
+var videos = require('../routes/videos');
 
 const io = require('socket.io')(server).of('/notifications');
 
 
-  app.use(function(req, res, next) {
-    req.io = io;
-    next();
-  });
-  
+app.use(function (req, res, next) {
+  req.io = io;
+  next();
+});
 
 
-  app.use('/',home );
-  app.use('/users', users);
-  app.use('/index',ensureAuthenticated,index);
-  app.use('/auth',auth);
-  
+
+app.use('/', home);
+app.use('/users', users);
+app.use('/index', ensureAuthenticated, index);
+app.use('/auth', auth);
+app.use('/videos', videos);
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   var err = new Error('Not Found');
   err.status = 404;
   next(err);
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
@@ -87,9 +87,9 @@ io.on('connection', (socket) => {
 
   socket.on('unsubscribe', function (data) {
     try {
-    var index = downloadSubscriptions.indexOf(data.requestId);
-    index > -1 && downloadSubscriptions.splice(index, 1);
-    socket.leave(data.requestId); 
+      var index = downloadSubscriptions.indexOf(data.requestId);
+      index > -1 && downloadSubscriptions.splice(index, 1);
+      socket.leave(data.requestId);
     } catch (error) {
       console.log('Error occurred while unsubscribing....' + error);
     }

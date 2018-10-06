@@ -12,6 +12,10 @@ div(class="mdc-layout-grid")
                 span=o.mimeType
                 a(href="/index/player/" + o.id, target="_blank")="Play"
                 a(href="/index/getinfo?fileid=" + o.id, target="_blank")="Get Info"
+                form(method="post", action="/videos/upload")
+                  input(type="hidden", name="fileid", value= o.id) 
+                  div.actions
+                    input(type="submit", value="Upload", class="mdc-button mdc-button--raised mdc-ripple-upgraded")          
                 //-h2 class="mdc-card__subtitle">Subtitle here</h2>
     if nextPageToken
         button(onclick="loadMore(this)", class="mdc-button mdc-button--raised load-more-link", data-next-page-token=nextPageToken)="Load more..."
