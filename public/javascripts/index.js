@@ -115,3 +115,21 @@ function loadMore(el, ev) {
 
 
 }
+
+function loadVideoUploadProgress(runId, elementId) {
+    var timer = setInterval(function () {
+        fetch('/videos/progressInfo/' + runId)
+            .then((response) => {
+                return response.json();
+            })
+            .then((myJson) => {
+                document.getElementById(elementId).innerHTML = JSON.stringify(myJson);
+                if (myJson.fileSize === myJson.fileUploaded) {
+                    clearInterval(timer);
+                }
+            }).catch((error) => {
+                clearInterval(timer);
+                console.log(error);
+            });
+    }, 1000);
+}

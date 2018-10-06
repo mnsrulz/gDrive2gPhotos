@@ -1,0 +1,19 @@
+extends layout
+
+block header
+    style.
+        fieldset {
+            padding-top: 0;
+            padding-bottom: 16px;
+            margin: 0;
+            border: 0;
+        }
+block content
+    div(class="mdc-toolbar-fixed-adjust")
+    fieldset
+        h6(class="mdc-typography--headline6")="Media Upload to Youtube progress"
+        div(id="progressInfo")
+        //- pre.json=JSON.stringify(progressInfo, null, 4)
+    script(src='/javascripts/index.js')
+    script.
+        loadVideoUploadProgress('#{runId}', 'progressInfo');

@@ -5,11 +5,13 @@ var google = require('googleapis');
 // var googleAuth = require('google-auth-library');
 // var oauthConfig = require('../oauthConfig');
 var service = google.youtube('v3');
+var drive = google.drive('v3');
 
 var googleAuthWrapper = require('../routes/googleauthwrapper');
 var got = require('got');
 
 var gddirect = require('gddirecturl');
+const uuidv1 = require('uuid/v1');
 
 function getAuth(req) {
   return googleAuthWrapper.getAuth(req);
@@ -28,13 +30,27 @@ router.get('/', function (req, res, next) {
 router.post('/upload', async function (req, res, next) {
   try {
     var result = await uploadVideo(req.body.fileid, getAuth(req));
-    res.send('uploaded : ' + result);
+    //res.send('uploaded : ' + result);
+    res.redirect('/videos/progress/' + result);
 
   } catch (error) {
     res.send('error occurred -- ' + error);
   }
-
 });
+
+router.get('/progress/:runId', async function (req, res, next) {
+  var runInfo = runCollection[req.params.runId];
+  res.render("progress", {
+    runId: req.params.runId
+  });
+});
+
+router.get('/progressInfo/:runId', async function (req, res, next) {
+  var runInfo = runCollection[req.params.runId];
+  res.send(runInfo);
+});
+
+var runCollection = {};
 
 
 // authorize(JSON.parse(content), {
@@ -91,58 +107,87 @@ function createResource(properties) {
   return resource;
 }
 
+
+async function getGoogleDriveMediaInfo(fileId, oauth2Client) {
+  return new Promise((resolve, reject) => {
+    drive.files.get({
+      auth: oauth2Client,
+      'fileId': fileId,
+      "fields": "*"
+    }, function (err, response) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
+
 async function uploadVideo(fileId, auth) {
 
   var fileDirectLink = await gddirect.getMediaLink(fileId);
-  var fileName = fileId;
+  var fileInfo = await getGoogleDriveMediaInfo(fileId, auth);
 
   var requestData = {
     'params': { 'part': 'snippet,status' }, 'properties': {
       'snippet.categoryId': '22',
       'snippet.defaultLanguage': '',
-      'snippet.description': 'Description of uploaded video.',
+      'snippet.description': 'GDriveId: ' + fileId,
       'snippet.tags[]': '',
-      'snippet.title': 'Test video upload' + fileId,
+      'snippet.title': fileInfo.name,
       'status.embeddable': '',
       'status.license': '',
       'status.privacyStatus': 'private',
       'status.publicStatsViewable': ''
-    }, 'mediaFilename': 'sample_video' + fileId + '.mp4'
+    }
   };
 
   var parameters = removeEmptyParameters(requestData['params']);
   parameters['auth'] = auth;
   //parameters['media'] = { body: fs.createReadStream(requestData['mediaFilename']) };
   var bytesReceived = 0;
-  var timer = setInterval(function () {
-    console.log('FileId: ' + fileId + ', Progress: ' + bytesReceived);
-  }, 1000);
-  return new Promise((resolve, reject) => {
-    got.stream(fileDirectLink.src, {
-      encoding: null
-    }).on('data', function (chunk) {
-      bytesReceived += chunk.length;
-    }).on('response', function (gotresponseinner) {
-      parameters['media'] = { body: gotresponseinner };
-      parameters['notifySubscribers'] = false;
-      parameters['resource'] = createResource(requestData['properties']);
+  // var timer = setInterval(function () {
+  //   console.log('FileId: ' + fileId + ', Progress: ' + bytesReceived);
+  // }, 1000);
 
-      var req = service.videos.insert(parameters, function (err, data) {
-        clearInterval(timer);
-        if (err) {
-          reject(err);
-          console.log('The API returned an error: ' + err);
-        }
-        if (data) {
-          console.log('The API successfully returned: ');
-          console.log('Data returned: ' + data);
-          resolve(data);
-          // console.log(util.inspect(data, false, null));
-        }
-        // process.exit();
-      });
+  var randomGuid = uuidv1();
+  var progress = {
+    fileName: fileInfo.name,
+    fileId: fileId,
+    fileSize: fileInfo.size,
+    fileUploaded: 0
+  };
+  runCollection[randomGuid] = progress;
+
+
+  got.stream(fileDirectLink.src, {
+    encoding: null
+  }).on('data', function (chunk) {
+    progress.fileUploaded += chunk.length;
+  }).on('response', function (gotresponseinner) {
+    parameters['media'] = { body: gotresponseinner };
+    parameters['notifySubscribers'] = false;
+    parameters['resource'] = createResource(requestData['properties']);
+
+    service.videos.insert(parameters, function (err, data) {
+      clearInterval(timer);
+      if (err) {
+        reject(err);
+        console.log('The API returned an error: ' + err);
+      }
+      if (data) {
+        console.log('The API successfully returned: ');
+        console.log('Data returned: ' + data);
+        resolve(data);
+        // console.log(util.inspect(data, false, null));
+      }
+      // process.exit();
     });
   });
+
+  //res.redirect('/progress/' + randomGuid);
+  return randomGuid;
   //Get Stream
   //Pipe to youtube upload
 }
