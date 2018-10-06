@@ -120,7 +120,13 @@ function loadVideoUploadProgress(runId, elementId) {
     var timer = setInterval(function () {
         fetch('/videos/progressInfo/' + runId)
             .then((response) => {
-                return response.json();
+                if  (response.ok){
+                    return response.json();
+                }
+                else{
+                    clearInterval(timer);
+                    return "not found";
+                }
             })
             .then((myJson) => {
                 document.getElementById(elementId).innerHTML = JSON.stringify(myJson);

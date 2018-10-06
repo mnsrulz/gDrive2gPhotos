@@ -38,6 +38,13 @@ router.post('/upload', async function (req, res, next) {
   }
 });
 
+router.get('/progress', async function (req, res, next) {
+  res.render("progress", {
+    runCollection: runCollection
+  });
+});
+
+
 router.get('/progress/:runId', async function (req, res, next) {
   var runInfo = runCollection[req.params.runId];
   res.render("progress", {
@@ -47,11 +54,16 @@ router.get('/progress/:runId', async function (req, res, next) {
 
 router.get('/progressInfo/:runId', async function (req, res, next) {
   var runInfo = runCollection[req.params.runId];
-  res.send(runInfo);
+  if (runInfo) {
+    res.send(runInfo);
+  } else {
+    res.status(404).send('Not found');
+  }
 });
 
 var runCollection = {};
-
+runCollection["hello1"] = { fileId: "file001", fileName: "filename01", progressId: "p21" };
+runCollection["hello2"] = { fileId: "file002", fileName: "filename02", progressId: "pr311" };
 
 // authorize(JSON.parse(content), {
 //   'params': { 'part': 'snippet,status' }, 'properties': {
@@ -156,7 +168,8 @@ async function uploadVideo(fileId, auth) {
     fileName: fileInfo.name,
     fileId: fileId,
     fileSize: fileInfo.size,
-    fileUploaded: 0
+    fileUploaded: 0,
+    progressId: randomGuid
   };
   runCollection[randomGuid] = progress;
 
