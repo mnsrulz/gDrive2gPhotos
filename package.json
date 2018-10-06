@@ -28,6 +28,7 @@
     "request": "^2.83.0",
     "serve-favicon": "~2.4.5",
     "session": "^0.1.0",
-    "socket.io": "^2.0.4"
+    "socket.io": "^2.0.4",
+    "uuid": "^3.3.2"
   }
 }
