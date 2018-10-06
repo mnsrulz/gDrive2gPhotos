@@ -26,8 +26,14 @@ router.get('/', function (req, res, next) {
 });
 
 router.post('/upload', async function (req, res, next) {
-  var result = await uploadVideo(req.body.fileid, getAuth(req));
-  res.send('uploaded');
+  try {
+    var result = await uploadVideo(req.body.fileid, getAuth(req));
+    res.send('uploaded : ' + result);
+
+  } catch (error) {
+    res.send('error occurred -- ' + error);
+  }
+
 });
 
 

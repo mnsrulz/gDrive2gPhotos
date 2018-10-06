@@ -31,7 +31,8 @@ router.get('/google',
     scope: ['email',
       'https://www.googleapis.com/auth/drive',
       'https://picasaweb.google.com/data/',
-      'https://photos.googleapis.com/data/'],
+      'https://photos.googleapis.com/data/',
+      'https://www.googleapis.com/auth/youtube.force-ssl'],
     accessType: 'offline', prompt: 'consent'
   }));
 
