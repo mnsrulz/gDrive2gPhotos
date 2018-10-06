@@ -107,19 +107,22 @@ async function uploadVideo(fileId, auth) {
   var parameters = removeEmptyParameters(requestData['params']);
   parameters['auth'] = auth;
   //parameters['media'] = { body: fs.createReadStream(requestData['mediaFilename']) };
-var bytesReceived=0;
+  var bytesReceived = 0;
+  var timer = setInterval(function () {
+    console.log('FileId: ' + fileId + ', Progress: ' + bytesReceived);
+  }, 1000);
   return new Promise((resolve, reject) => {
     got.stream(fileDirectLink.src, {
       encoding: null
     }).on('data', function (chunk) {
       bytesReceived += chunk.length;
-      console.log('FileId: ' + fileId + ', Progress: ' + bytesReceived);
     }).on('response', function (gotresponseinner) {
       parameters['media'] = { body: gotresponseinner };
       parameters['notifySubscribers'] = false;
       parameters['resource'] = createResource(requestData['properties']);
 
       var req = service.videos.insert(parameters, function (err, data) {
+        clearInterval(timer);
         if (err) {
           reject(err);
           console.log('The API returned an error: ' + err);
