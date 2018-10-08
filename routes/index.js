@@ -51,7 +51,7 @@ function t(oauth2Client, nextPageToken) {
       pageSize: 100,
       fields: "nextPageToken, files",
       pageToken: nextPageToken,
-      q: "mimeType!='application/vnd.google-apps.folder' and mimeType!='image/jpeg' and not '1UsclHjn0sZUEp0X3mq5fpEn3ppgkdl3q' in parents"
+      q: "mimeType!='application/vnd.google-apps.folder' and mimeType!='image/jpeg' and mimeType!='text/plain' and not '1UsclHjn0sZUEp0X3mq5fpEn3ppgkdl3q' in parents"
     }, function (err, response) {
       if (err) {
         console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
