@@ -14,7 +14,7 @@ block header
 block content
     div(class="mdc-toolbar-fixed-adjust")
     fieldset
-        h6(class="mdc-typography--headline6")="Google drive file info"
+        h2(class="mdc-typography--headline6")="Google drive file info"
         form(method="get")
             div(class="mdc-text-field mdc-text-field--fullwidth") 
                 input(type="text", class="mdc-text-field__input", name="fileid", placeholder="GD Link", aria-label="GD Link",autofocus) 
@@ -25,5 +25,5 @@ block content
         form(method="post", action="/videos/upload")
             input(type="hidden", name="fileid", value= fileInfo.id) 
             div.actions
-            input(type="submit", value="Upload", class="mdc-button mdc-button--raised mdc-ripple-upgraded")             
+            input(type="submit", value="Upload to youtube", class="mdc-button mdc-button--raised mdc-ripple-upgraded")             
         

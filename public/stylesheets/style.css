@@ -54,6 +54,8 @@ width: 100%;
 overflow: hidden;
 text-overflow: ellipsis;
 white-space: nowrap;
+padding: 2px;
+margin: 5px 0px;
 }
 /* 
 .mdc-card{

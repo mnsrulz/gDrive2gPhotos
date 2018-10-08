@@ -50,7 +50,8 @@ function t(oauth2Client, nextPageToken) {
       auth: oauth2Client,
       pageSize: 100,
       fields: "nextPageToken, files",
-      pageToken: nextPageToken
+      pageToken: nextPageToken,
+      q: "mimeType!='application/vnd.google-apps.folder' and mimeType!='image/jpeg' and not '1UsclHjn0sZUEp0X3mq5fpEn3ppgkdl3q' in parents"
     }, function (err, response) {
       if (err) {
         console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
@@ -94,25 +95,25 @@ router.get('/', async function (req, res, next) {
   var oauth2Client = getAuth(req);
   var promiseListFiles = t(oauth2Client);
 
-  var promiseListAlbums = new Promise(async (resolve, reject) => {
-    var accessToken = await getAccessTokenAsync(req);
-    picasa.getAlbums(accessToken, {}, (error, albums) => {
-      if (error) {
-        reject(error);
-      }
-      else {
-        resolve(albums);
-      }
-    });
-  });
+  // var promiseListAlbums = new Promise(async (resolve, reject) => {
+  //   var accessToken = await getAccessTokenAsync(req);
+  //   picasa.getAlbums(accessToken, {}, (error, albums) => {
+  //     if (error) {
+  //       reject(error);
+  //     }
+  //     else {
+  //       resolve(albums);
+  //     }
+  //   });
+  // });
 
-  Promise.all([promiseListFiles, promiseListAlbums]).then((result) => {
+  Promise.all([promiseListFiles]).then((result) => {
     console.log('found files and listing pic albums.. jade now..');
     res.render("index", {
       title: 'Home',
       files: result[0].data,
       nextPageToken: result[0].nextPageToken,
-      albums: result[1]
+      //albums: result[1]
     });
   }).catch(() => {
     res.render('error', {
@@ -237,6 +238,21 @@ router.get('/addlink', async function (req, res, next) {
   });
 })
 
+
+router.post('/addToIgnoreList', async function (req, res, next) {
+  var oauth2Client = getAuth(req);
+  var fileId = req.body.fileId;
+  try {
+    var ignoreFolderId = await getIgnoreFolderId(oauth2Client);
+    await addFileToMyDrive(fileId, ignoreFolderId, oauth2Client);
+    res.send('Added to ignored list.');
+  } catch (error) {
+    console.log(JSON.stringify(error));
+    res.send('An error occurred... ' + JSON.stringify(error));
+  } 
+})
+
+
 // router.get('/getinfo', async function (req, res, next) {
 //   res.render("getinfo", {
 
@@ -270,7 +286,8 @@ router.post('/addlink', async function (req, res, next) {
   if (fileId) {
     var oauth2Client = getAuth(req);
     try {
-      var fileAddResponse = await addFileToMyDrive(fileId, oauth2Client);
+      var rootFolder = await getGoogleDriveMediaInfo(folderId, oauth2Client);
+      var fileAddResponse = await addFileToMyDrive(fileId, rootFolder.id, oauth2Client);
     }
     catch (error) {
       fileAddResponse = error;
@@ -323,8 +340,29 @@ async function getGoogleDriveMediaInfo(fileId, oauth2Client) {
   });
 }
 
-async function addFileToMyDrive(fileId, oauth2Client) {
-  var rootFolder = await getGoogleDriveMediaInfo('root', oauth2Client);
+async function getIgnoreFolderId(oauth2Client) {
+  return new Promise((resolve, reject) => {
+    service.files.list({
+      auth: oauth2Client,
+      q: "mimeType='application/vnd.google-apps.folder' and name = 'IGNORE_FOLDER' and 'root' in parents",
+      fields: 'files(id, name)'
+    }, function (err, res) {
+      if (err) {
+        reject(err);
+      } else {
+        if (res.files.length === 1) {
+          var folderId = res.files[0].id;
+          resolve(folderId);
+        }
+        else {
+          reject('IGNORE_FOLDER Folder not found. You must create a folder with this name in your root folder.');
+        }
+      }
+    });
+  });
+}
+
+async function addFileToMyDrive(fileId, folderId, oauth2Client) {
   return new Promise((resolve, reject) => {
     service.files.get({
       auth: oauth2Client,
@@ -334,14 +372,14 @@ async function addFileToMyDrive(fileId, oauth2Client) {
       if (err) {
         reject(err);
       } else {
-        if (file.parents && file.parents.indexOf(rootFolder.id)) {
+        if (file.parents && file.parents.indexOf(folderId) >= 0) {
           reject('File already exists in this folder...');
         }
         else {
           service.files.update({
             auth: oauth2Client,
             fileId: fileId,
-            addParents: 'root',
+            addParents: folderId,
             fields: 'id, parents'
           }, function (err, file) {
             if (err) {
@@ -355,7 +393,6 @@ async function addFileToMyDrive(fileId, oauth2Client) {
     });
   });
 }
-
 
 async function createVideo(photoRequest, accessToken) {
   // photoRequest.albumId;
