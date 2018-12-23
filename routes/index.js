@@ -37,21 +37,49 @@ function filterAndSort(files) {
       runTime: x.videoMediaMetadata && format(parseInt(x.videoMediaMetadata.durationMillis)),
       parentId: (x.parents && x.parents[0]) || '',
       mimeType: x.mimeType,
-      iconLink: x.iconLink
+      iconLink: x.iconLink,
+      resolution: calculateResolution(x),
+      size: fileSizeIEC(x.size)
     };
   }).sort((f1, f2) => {
     return f1["parentId"].localeCompare(f2["parentId"]) || f1["name"].localeCompare(f2["name"]);
   });
 }
 
-function t(oauth2Client, nextPageToken) {
+function calculateResolution(file) {
+  if (file && file.videoMediaMetadata) {
+    switch (file.videoMediaMetadata.width) {
+      case 3840:
+        return "4K";
+      case 1920:
+        return "FHD";
+      case 1280:
+        return "HD";
+      default:
+        return "SD";
+    }
+  } else {
+    return "Unknown";
+  }
+}
+
+function fileSizeIEC(a, b, c, d, e) {
+  return (b = Math, c = b.log, d = 1024, e = c(a) / c(d) | 0, a / b.pow(d, e)).toFixed(2)
+    + ' ' + (e ? 'KMGTPEZY'[--e] + 'iB' : 'Bytes')
+}
+
+function t(oauth2Client, nextPageToken, searchParams) {
+  var quality = "", fileNameQuery = "";
+  searchParams && (quality = searchParams.quality);
+  searchParams && searchParams.search && (fileNameQuery = " and (name contains '" + searchParams.search.replace(/[\W_]+/g, " ") + "' or name contains '" + searchParams.search.replace(/[\W_]+/g, " ") + "')");  //removes non alpha chars
+
   return new Promise((resolve, reject) => {
     service.files.list({
       auth: oauth2Client,
       pageSize: 100,
       fields: "nextPageToken, files",
       pageToken: nextPageToken,
-      q: "mimeType!='application/vnd.google-apps.folder' and mimeType!='image/jpeg' and mimeType!='text/plain' and not '1UsclHjn0sZUEp0X3mq5fpEn3ppgkdl3q' in parents"
+      q: "mimeType!='application/vnd.google-apps.folder' and mimeType!='image/jpeg' and mimeType!='text/plain' and mimeType!='application/pdf' and mimeType!='application/vnd.google-apps.document' and not '1UsclHjn0sZUEp0X3mq5fpEn3ppgkdl3q' in parents" + fileNameQuery
     }, function (err, response) {
       if (err) {
         console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
@@ -65,7 +93,8 @@ function t(oauth2Client, nextPageToken) {
       else {
         resolve({
           data: filterAndSort(response.files),
-          nextPageToken: response.nextPageToken
+          nextPageToken: response.nextPageToken,
+          searchParams: searchParams
         });
       }
     });
@@ -92,8 +121,12 @@ router.get('/ajaxnext/:nextPageToken', async function (req, res, next) {
 
 /* GET home page. */
 router.get('/', async function (req, res, next) {
+  var searchParams = {
+    search: req.query.search,
+    quality: req.query.quality
+  };
   var oauth2Client = getAuth(req);
-  var promiseListFiles = t(oauth2Client);
+  var promiseListFiles = t(oauth2Client, null, searchParams);
 
   // var promiseListAlbums = new Promise(async (resolve, reject) => {
   //   var accessToken = await getAccessTokenAsync(req);
@@ -124,6 +157,20 @@ router.get('/', async function (req, res, next) {
   });
 
 });
+
+router.get('/search', async function (req, res, next) {
+  res.render("search", {
+
+  });
+})
+
+
+router.get('/rokugenerator', async function (req, res, next) {
+  res.render("rokugenerator", {
+
+  });
+})
+
 
 router.get('/player/:docid', async function (req, res, next) {
   var docId = req.params.docid;
@@ -249,7 +296,20 @@ router.post('/addToIgnoreList', async function (req, res, next) {
   } catch (error) {
     console.log(JSON.stringify(error));
     res.send('An error occurred... ' + JSON.stringify(error));
-  } 
+  }
+})
+
+router.post('/addToAllList', async function (req, res, next) {
+  var oauth2Client = getAuth(req);
+  var fileId = req.body.fileId;
+  try {
+    var ignoreFolderId = await getIgnoreFolderId(oauth2Client);
+    await addFileToMyDrive(fileId, ignoreFolderId, oauth2Client);
+    res.send('Added to ignored list.');
+  } catch (error) {
+    console.log(JSON.stringify(error));
+    res.send('An error occurred... ' + JSON.stringify(error));
+  }
 })
 
 
@@ -302,6 +362,133 @@ router.post('/addlink', async function (req, res, next) {
   }
 })
 
+
+router.get('/rokuchannel', async function (req, res, next) {
+  var folderId = req.query["folderid"];
+  var oauth2Client = getAuth(req);
+  var objToReturn = {
+    providerName: 'Roku Recommends',
+    language: 'en-US',
+    lastUpdated: new Date(),
+    categories: []
+  }
+  var categories = await getSubFolders(oauth2Client, folderId);
+  var playLists = [];
+  var shortFormVideos = [];
+  objToReturn.categories = [];
+  for (let index = 0; index < categories.length; index++) {
+    const x = categories[index];
+    objToReturn.categories.push(mapFolderToCategory(x));
+    var folderContent = await getFolderContent(oauth2Client, x.id);
+    playLists.push({
+      name: x.name,
+      itemIds: folderContent.map(y => y.id)
+    });
+    folderContent.forEach(y => {
+      shortFormVideos.push(mapFileToShortFormVideo(y))
+    });
+  }
+  objToReturn.playlists = playLists;
+  objToReturn.shortFormVideos = shortFormVideos;
+  try {
+    await updatemyjson(objToReturn);  
+  } catch (error) {
+    console.log('Error occurred while updating the json content')
+  }
+  res.send(objToReturn);
+})
+
+async function updatemyjson(jsonContent) {
+  //to read use this https://api.myjson.com/bins/gadiu
+  await axios.put('https://api.myjson.com/bins/gadiu', jsonContent)
+    .then(function (response) {
+      console.log(response);
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+}
+
+async function getSubFolders(oauth2Client, folderId) {
+  return new Promise((resolve, reject) => {
+    service.files.list({
+      auth: oauth2Client,
+      pageSize: 100,
+      fields: "files",
+      q: "mimeType='application/vnd.google-apps.folder' and '" + folderId + "' in parents"
+    }, function (err, response) {
+      if (err) {
+        console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
+        reject(err);
+      }
+      else {
+        resolve(response.files);
+      }
+    });
+  });
+}
+
+function mapFolderToCategory(x) {
+  return {
+    name: x.name,
+    playlistName: x.name,
+    order: 'manual'
+  }
+}
+
+function mapFileToShortFormVideo(x) {
+  return {
+    "id": x.id,
+    "title": x.name,
+    "shortDescription": x.name,
+    "thumbnail": 'https://blog.roku.com/developer/files/2016/10/twitch-poster-artwork.png',//x.thumbnailLink,
+    "genres": [
+      "gaming",
+      "technology"
+    ],
+    "tags": [
+      "gaming",
+      "broadcasts",
+      "live",
+      "twitch",
+      "technology"
+    ],
+    "releaseDate": "2015-06-11",
+    "content": {
+      "dateAdded": "2015-06-11T14:14:54.431Z",
+      "captions": [],
+      "duration": 53,
+      "videos": [
+        {
+          //"url":"https://doc-0s-3k-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/5nufoh9lnpaqgtdoamcul7eu5tbpv4b8/1544299200000/06932504491953969055/*/16YTERTAPJ-qyskaJvIsMuw4n3-ir2pnN?e=download",
+          "url": `https://apighost.herokuapp.com/api/gddirectstreamurl/${x.id}`,
+          "quality": "UHD",
+          "videoType": 'auto'
+        }
+      ]
+    }
+  }
+}
+
+async function getFolderContent(oauth2Client, folderId) {
+  return new Promise((resolve, reject) => {
+    service.files.list({
+      auth: oauth2Client,
+      pageSize: 100,
+      fields: "files",
+      q: "mimeType!='application/vnd.google-apps.folder' and mimeType!='image/jpeg' and mimeType!='text/plain' and mimeType!='application/pdf' and mimeType!='application/vnd.google-apps.document' and '" + folderId + "' in parents"
+    }, function (err, response) {
+      if (err) {
+        console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
+        reject(err);
+      }
+      else {
+        resolve(response.files);
+      }
+    });
+  });
+}
+
 function extractFileId(gdlink) {
   if (gdlink) {
     var fileId;
@@ -341,10 +528,18 @@ async function getGoogleDriveMediaInfo(fileId, oauth2Client) {
 }
 
 async function getIgnoreFolderId(oauth2Client) {
+  return getFolderIdByName('IGNORE_FOLDER', oauth2Client);
+}
+
+async function getAllMoviesFolderId(oauth2Client) {
+  return getFolderIdByName('IGNORE_FOLDER', oauth2Client);
+}
+
+async function getFolderIdByName(folderName, oauth2Client) {
   return new Promise((resolve, reject) => {
     service.files.list({
       auth: oauth2Client,
-      q: "mimeType='application/vnd.google-apps.folder' and name = 'IGNORE_FOLDER' and 'root' in parents",
+      q: "mimeType='application/vnd.google-apps.folder' and name = '" + folderName + "' and 'root' in parents",
       fields: 'files(id, name)'
     }, function (err, res) {
       if (err) {
@@ -355,7 +550,7 @@ async function getIgnoreFolderId(oauth2Client) {
           resolve(folderId);
         }
         else {
-          reject('IGNORE_FOLDER Folder not found. You must create a folder with this name in your root folder.');
+          reject(folderName + ' Folder not found. You must create a folder with this name in your root folder.');
         }
       }
     });

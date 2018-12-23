@@ -3,7 +3,7 @@ html
   head
     title= title
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    script(src="https://raw.githubusercontent.com/material-components/material-components-web/master/demos/ready.js")
+    //- script(src="https://raw.githubusercontent.com/material-components/material-components-web/master/demos/ready.js")
     link(rel="stylesheet", href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css")
     link(rel="stylesheet", href="https://fonts.googleapis.com/icon?family=Material+Icons")
     script(src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js")
@@ -20,7 +20,9 @@ html
           //- </span>
         section(class="mdc-toolbar__section mdc-toolbar__section--align-end", role="toolbar")
           a(href="/index" class="mdc-ripple-surface demo-surface material-icons mdc-toolbar__icon", title="Home")="home"
-          a(href="/index/addlink" class="mdc-ripple-surface demo-surface material-icons mdc-toolbar__icon", title="Add")="search"
+          a(href="/index/search" class="mdc-ripple-surface demo-surface material-icons mdc-toolbar__icon", title="Search")="search"
+          a(href="/index/addlink" class="mdc-ripple-surface demo-surface material-icons mdc-toolbar__icon", title="Add")="add"
+          a(href="/index/rokugenerator" class="mdc-ripple-surface demo-surface material-icons mdc-toolbar__icon", title="Generate Roku Channel Json")="add"
           a(href="/videos/progress" class="mdc-ripple-surface demo-surface material-icons mdc-toolbar__icon", title="List Progress")="list"
           a(href="/logout" class="mdc-ripple-surface demo-surface material-icons mdc-toolbar__icon", title="Sign Out")="power_settings_new"
                 //- <a href="#" class="material-icons mdc-toolbar__icon" aria-label="Print this page" alt="Print this page">print</a>

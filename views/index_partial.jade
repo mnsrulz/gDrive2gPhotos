@@ -7,6 +7,8 @@ div(class="mdc-layout-grid")
             div
               section(class="mdc-card__media demo-card__16-9-media", style="background-image: url("+(o.thumbnailLink)+")")
                 div(class="mdc-card__subtitle")= o.runTime
+                div=o.resolution
+                div=o.size
               section(class="mdc-card__primary")
                 h3(class="mdc-card__title", title=o.name)=o.name
                 .mdc-card__actions.mdc-card__actions--full-bleed
