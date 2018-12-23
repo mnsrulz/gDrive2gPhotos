@@ -26,4 +26,9 @@ block content
             input(type="hidden", name="fileid", value= fileInfo.id) 
             div.actions
             input(type="submit", value="Upload to youtube", class="mdc-button mdc-button--raised mdc-ripple-upgraded")             
+        form(method="post", action="/videos/setCurrentMedia")
+            input(type="hidden", name="fileid", value= fileInfo.id) 
+            div.actions
+            input(type="submit", value="Set as Current Media", class="mdc-button mdc-button--raised mdc-ripple-upgraded")             
+            
         

@@ -1,5 +1,6 @@
 var express = require('express');
 var router = express.Router();
+var redis = require('redis');
 
 var google = require('googleapis');
 // var googleAuth = require('google-auth-library');
@@ -60,6 +61,73 @@ router.get('/progressInfo/:runId', async function (req, res, next) {
     res.status(404).send('Not found');
   }
 });
+
+router.post('/setCurrentMedia', async function (req, res, next) {
+  var fileId = req.body.fileId;
+  try {
+    await setRedisValue('CURRENT_MEDIA_ID', fileId);
+    res.send('Set as current media. Use /getCurrentMedia or /getCurrentMediaStream to access the current media');
+  } catch (error) {
+    console.log(JSON.stringify(error));
+    res.send('An error occurred... ' + JSON.stringify(error));
+  }
+})
+
+router.get('/getCurrentMedia', async function (req, res, next) {
+  try {
+    var fileId = await getRedisValue('CURRENT_MEDIA_ID');
+    res.send(fileId);
+  } catch (error) {
+    console.log('Unable to get current media id');
+    res.send('error');
+  }
+});
+
+router.get('/getCurrentMediaStream', async function (req, res, next) {
+  try {
+    var fileId = getRedisValue('CURRENT_MEDIA_ID');
+    var o = await gddirect.getMediaLink(fileId);
+    res.redirect(o.src, next)
+  } catch (error) {
+    console.log('Unable to get the current media id');
+    res.send('error');
+  }
+});
+
+function getRedisClient() {
+  var redisClient = redis.createClient({
+    port: process.env.RedisPort,               // replace with your port
+    host: process.env.RedisUrl,        // replace with your hostanme or IP address
+    password: process.env.RedisPwd    // replace with your password
+  });
+  return redisClient;
+}
+
+async function getRedisValue(key) {
+  var client = getRedisClient();
+  return new Promise((resolve, reject) => {
+    client.get(key, function (err, value) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(value);
+      }
+    });
+  });
+}
+
+async function setRedisValue(key, value) {
+  var client = getRedisClient();
+  return new Promise((resolve, reject) => {
+    client.set(key, value, function (err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
 
 var runCollection = {};
 // runCollection["hello1"] = { fileId: "file001", fileName: "filename01", progressId: "p21" };
