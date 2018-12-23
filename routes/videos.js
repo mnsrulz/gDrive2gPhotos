@@ -63,7 +63,7 @@ router.get('/progressInfo/:runId', async function (req, res, next) {
 });
 
 router.post('/setCurrentMedia', async function (req, res, next) {
-  var fileId = req.body.fileId;
+  var fileId = req.body.fileid;
   try {
     await setRedisValue('CURRENT_MEDIA_ID', fileId);
     res.send('Set as current media. Use /getCurrentMedia or /getCurrentMediaStream to access the current media');
@@ -85,9 +85,9 @@ router.get('/getCurrentMedia', async function (req, res, next) {
 
 router.get('/getCurrentMediaStream', async function (req, res, next) {
   try {
-    var fileId = getRedisValue('CURRENT_MEDIA_ID');
+    var fileId = await getRedisValue('CURRENT_MEDIA_ID');
     var o = await gddirect.getMediaLink(fileId);
-    res.redirect(o.src, next)
+    res.redirect(o.src)
   } catch (error) {
     console.log('Unable to get the current media id');
     res.send('error');
