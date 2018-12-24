@@ -71,7 +71,7 @@ function fileSizeIEC(a, b, c, d, e) {
 function t(oauth2Client, nextPageToken, searchParams) {
   var quality = "", fileNameQuery = "";
   searchParams && (quality = searchParams.quality);
-  searchParams && searchParams.search && (fileNameQuery = " and (name contains '" + searchParams.search.replace(/[\W_]+/g, " ") + "' or name contains '" + searchParams.search.replace(/[\W_]+/g, " ") + "')");  //removes non alpha chars
+  searchParams && searchParams.search && (fileNameQuery = " and (name contains '" + searchParams.search.replace(/[\W_]+/g, " ") + "' or fullText contains '" + searchParams.search.replace(/[\W_]+/g, " ") + "')");  //removes non alpha chars
 
   return new Promise((resolve, reject) => {
     service.files.list({
@@ -79,7 +79,7 @@ function t(oauth2Client, nextPageToken, searchParams) {
       pageSize: 100,
       fields: "nextPageToken, files",
       pageToken: nextPageToken,
-      q: "mimeType!='application/vnd.google-apps.folder' and mimeType!='image/jpeg' and mimeType!='text/plain' and mimeType!='application/pdf' and mimeType!='application/vnd.google-apps.document' and not '1UsclHjn0sZUEp0X3mq5fpEn3ppgkdl3q' in parents" + fileNameQuery
+      q: "mimeType!='application/vnd.google-apps.folder' and mimeType!='image/jpeg' and mimeType!='image/png' and mimeType!='text/plain' and mimeType!='application/pdf' and mimeType!='application/vnd.google-apps.document' and not '1UsclHjn0sZUEp0X3mq5fpEn3ppgkdl3q' in parents" + fileNameQuery
     }, function (err, response) {
       if (err) {
         console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
@@ -104,7 +104,8 @@ function t(oauth2Client, nextPageToken, searchParams) {
 router.get('/ajaxnext/:nextPageToken', async function (req, res, next) {
   var oauth2Client = getAuth(req);
   var nextPageToken = req.params.nextPageToken;
-  var result = await t(oauth2Client, nextPageToken).catch(() => {
+  var searchParams = parseSearchParamFromReferer(req.headers.referer);
+  var result = await t(oauth2Client, nextPageToken, searchParams).catch(() => {
     return null;
   });
 
@@ -118,6 +119,16 @@ router.get('/ajaxnext/:nextPageToken', async function (req, res, next) {
     res.send({ error: 'Unable to fetch page...' });
   }
 })
+
+function parseSearchParamFromReferer(referer) {
+  //ref looks like "http://local.com:3000/index?search=the"
+  var parsedUrl = url.parse(referer, true);
+  var queryData = parsedUrl.query;
+  return {
+    search: queryData.search || '',
+    quality: ''
+  }
+}
 
 /* GET home page. */
 router.get('/', async function (req, res, next) {
@@ -346,6 +357,7 @@ router.post('/addlink', async function (req, res, next) {
   if (fileId) {
     var oauth2Client = getAuth(req);
     try {
+      var folderId = "root";
       var rootFolder = await getGoogleDriveMediaInfo(folderId, oauth2Client);
       var fileAddResponse = await addFileToMyDrive(fileId, rootFolder.id, oauth2Client);
     }
@@ -391,7 +403,7 @@ router.get('/rokuchannel', async function (req, res, next) {
   objToReturn.playlists = playLists;
   objToReturn.shortFormVideos = shortFormVideos;
   try {
-    await updatemyjson(objToReturn);  
+    await updatemyjson(objToReturn);
   } catch (error) {
     console.log('Error occurred while updating the json content')
   }
