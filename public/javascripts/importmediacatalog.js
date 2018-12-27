@@ -287,7 +287,7 @@ class ImdbInfo extends React.Component {
                             variant="contained"
                             color="primary"
                             disabled={savingItem}
-                            onClick={() => { this.saveItem()}}
+                            onClick={() => { this.saveItem() }}
                         >
                             Save
                         </Button>
@@ -370,7 +370,127 @@ class MediaList extends React.Component {
     }
 }
 
-const domContainer = document.querySelector('#like_button_container');
-ReactDOM.render(e(MediaList), domContainer);
 
+class MediaCrawler extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            error: null,
+            isLoaded: false,
+            items: [],
+            selectedItem: null,
+            selectedItemId: null,
+            counter: 0
+        };
+        // this.itemClicked = this.itemClicked.bind(this)
+    }
 
+    // itemClicked(item) {
+    //     this.setState({ selectedItemId: item.id, selectedItem: item })
+    // }
+
+    componentDidMount() {
+        fetch("/admin/FilesToProcess")
+            .then(res => res.json())
+            .then(
+                (result) => {
+                    this.setState({
+                        isLoaded: true,
+                        items: result
+                    });
+                },
+                // Note: it's important to handle errors here
+                // instead of a catch() block so that we don't swallow
+                // exceptions from actual bugs in components.
+                (error) => {
+                    this.setState({
+                        isLoaded: true,
+                        error
+                    });
+                }
+            ).then(() => {
+                this.processIt();
+            })
+    }
+
+    processIt() {
+        const { counter, items } = this.state;
+        if (items.length == 0) {
+            alert('completed'); return;
+        }
+        if (items.length > 0 && counter >= items.length) {
+            location.reload(); return;
+        }
+        var nextItem = items[counter];// this.state.items[this.state.counter];
+        this.setState({
+            counter: this.state.counter + 1,
+            selectedItem: nextItem
+        }, () => {
+            debugger;
+            this.addFileToFolder(nextItem.id).then(() => {
+                this.processIt();
+            });
+        });
+    }
+
+    addFileToFolder(fileId) {
+
+        return this.postData(`/admin/addFileToBeProcessedDrive`, { fileId: fileId })
+            .then(data => console.log(JSON.stringify(data))) // JSON-string from `response.json()` call
+            .catch(error => console.error(error));
+    }
+
+    postData(url = ``, data = {}) {
+        // Default options are marked with *
+        return fetch(url, {
+            method: "POST", // *GET, POST, PUT, DELETE, etc.
+            mode: "cors", // no-cors, cors, *same-origin
+            cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+            credentials: "same-origin", // include, *same-origin, omit
+            headers: {
+                "Content-Type": "application/json",
+                // "Content-Type": "application/x-www-form-urlencoded",
+            },
+            redirect: "follow", // manual, *follow, error
+            referrer: "no-referrer", // no-referrer, *client
+            body: JSON.stringify(data), // body data type must match "Content-Type" header
+        }).then(response => response.json()); // parses response to JSON
+    }
+
+    render() {
+        const { error, isLoaded, items } = this.state;
+        if (error) {
+            return <div>Error: {error.message}</div>;
+        } else if (!isLoaded) {
+            return <div>Loading...</div>;
+        } else {
+            return (
+                <div className="flex-container">
+                    {this.state.counter}
+                    {JSON.stringify(this.state.selectedItem)}
+                    {/* <div className="media-list">
+
+                        {items.map(item => (
+                            <MediaItem selected={this.state.selectedItemId == item.id ? "true" : "false"}
+                                mediaObject={item} clicked={this.itemClicked}>
+                            </MediaItem>
+                        ))}
+
+                    </div>
+                    <div className="imdb-info">
+                        <ImdbInfo mediaItem={this.state.selectedItem}>
+                        </ImdbInfo>
+                    </div> */}
+                </div>
+            );
+        }
+    }
+}
+
+var importMediaDomContainer = document.querySelector('#like_button_container');
+if (importMediaDomContainer) {
+    ReactDOM.render(e(MediaList), importMediaDomContainer);
+} else {
+    var crawlMediaDomContainer = document.querySelector('#crawl-media-list');
+    ReactDOM.render(e(MediaCrawler), crawlMediaDomContainer);
+}

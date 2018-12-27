@@ -26,7 +26,8 @@ async function getFolderIdByName(folderName, req) {
 }
 
 async function listToBeProcessedMediaFiles(req) {
-    var processedFolderId = await getFolderIdByName('ALL_MEDIA_PROCESSED', req);
+    var processedFolderId = await getFolderIdByName('ALL_MEDIA_TO_BE_PROCESSED', req);
+    var ignoreFolderId = await getFolderIdByName('IGNORE_FOLDER', req);
     var oauth2Client = googleAuthWrapper.getAuth(req);
 
     return new Promise((resolve, reject) => {
@@ -34,7 +35,7 @@ async function listToBeProcessedMediaFiles(req) {
             auth: oauth2Client,
             pageSize: 100,
             fields: "files",
-            q: "mimeType!='application/vnd.google-apps.folder' and mimeType!='image/jpeg' and mimeType!='application/x-subrip' and mimeType!='text/plain' and mimeType!='application/pdf' and mimeType!='application/vnd.google-apps.document' and not '1UsclHjn0sZUEp0X3mq5fpEn3ppgkdl3q' in parents and not '" + processedFolderId + "' in parents"
+            q: "mimeType!='application/vnd.google-apps.folder' and mimeType!='audio/mp3' and mimeType!='image/jpeg' and mimeType!='image/png' and mimeType!='application/octet-stream' and mimeType!='application/x-subrip' and mimeType!='text/plain' and mimeType!='application/pdf' and mimeType!='application/vnd.google-apps.document' and not '" + ignoreFolderId + "' in parents and not '" + processedFolderId + "' in parents"
         }, function (err, response) {
             if (err) {
                 console.log('An error occurred while listing the google drive files. ' + JSON.stringify(err));
@@ -64,10 +65,51 @@ async function getGoogleDriveMediaInfo(fileId, req) {
     });
 }
 
+async function addFileToBeProcessedFolder(fileId, req) {
+    var folderId = await getFolderIdByName('ALL_MEDIA_TO_BE_PROCESSED', req);
+    return await addFileToMyDrive(fileId, folderId, req);
+}
+
+
+async function addFileToMyDrive(fileId, folderId, req) {
+    var oauth2Client = googleAuthWrapper.getAuth(req);
+    return new Promise((resolve, reject) => {
+        service.files.get({
+            auth: oauth2Client,
+            fileId: fileId,
+            fields: 'parents'
+        }, function (err, file) {
+            if (err) {
+                reject(err);
+            } else {
+                if (file.parents && file.parents.indexOf(folderId) >= 0) {
+                    reject('File already exists in this folder...');
+                }
+                else {
+                    service.files.update({
+                        auth: oauth2Client,
+                        fileId: fileId,
+                        addParents: folderId,
+                        fields: 'id, parents'
+                    }, function (err, file) {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(file);
+                        }
+                    });
+                }
+            }
+        });
+    });
+}
+
+
 var ids = {
     getFolderIdByName: getFolderIdByName,
     listToBeProcessedMediaFiles: listToBeProcessedMediaFiles,
-    getGoogleDriveMediaInfo: getGoogleDriveMediaInfo
+    getGoogleDriveMediaInfo: getGoogleDriveMediaInfo,
+    addFileToBeProcessedFolder: addFileToBeProcessedFolder
 };
 
 module.exports = ids;

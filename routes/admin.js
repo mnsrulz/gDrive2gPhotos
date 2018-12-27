@@ -3,8 +3,8 @@ var router = express.Router();
 var googledrivewrapper = require('../routes/googledrivewrapper');
 var imdbscrapper = require('imdb-scrapper')
 /* GET home page. */
-router.get('/crawlmovies', function (req, res, next) {
-
+router.get('/crawlmedia', function (req, res, next) {
+    res.render("crawlmedia");
 });
 
 router.get('/importmediacatalog', async function (req, res, next) {
@@ -40,6 +40,13 @@ router.get('/imdbtitle/:id', async function (req, res, next) {
 
 router.post('/persistMedia', function (req, res, next) {
 
+})
+
+
+router.post('/addFileToBeProcessedDrive', async function (req, res, next) {
+    var fileId = req.body.fileId;
+    var result = await googledrivewrapper.addFileToBeProcessedFolder(fileId, req);
+    res.send({success: true});
 })
 
 
