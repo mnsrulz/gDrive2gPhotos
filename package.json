@@ -5,7 +5,7 @@
   "scripts": {
     "build": "browserify public/javascripts/importmediacatalog.js -o public/javascripts/bundle.js -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ]",
     "watch": "watchify public/javascripts/importmediacatalog.js -o public/javascripts/bundle.js -v -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ]",
-    "start": "node ./bin/www"
+    "start": "browserify public/javascripts/importmediacatalog.js -o public/javascripts/bundle.js -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] && node ./bin/www"
   },
   "dependencies": {
     "@material-ui/core": "^3.6.1",
