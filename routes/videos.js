@@ -63,10 +63,14 @@ router.get('/progressInfo/:runId', async function (req, res, next) {
 });
 
 router.post('/setCurrentMedia', async function (req, res, next) {
+
   var fileId = req.body.fileid;
   try {
     await setRedisValue('CURRENT_MEDIA_ID', fileId);
-    res.send('Set as current media. Use /getCurrentMedia or /getCurrentMediaStream to access the current media');
+
+    res.render("setCurrentMedia");
+
+    // res.send('Set as current media. Use /getCurrentMedia or /getCurrentMediaStream to access the current media');
   } catch (error) {
     console.log(JSON.stringify(error));
     res.send('An error occurred... ' + JSON.stringify(error));
@@ -76,7 +80,18 @@ router.post('/setCurrentMedia', async function (req, res, next) {
 router.get('/getCurrentMedia', async function (req, res, next) {
   try {
     var fileId = await getRedisValue('CURRENT_MEDIA_ID');
-    res.send(fileId);
+    var objToReturn = {
+      fileId
+    }
+    try {
+      var o = await gddirect.getMediaLink(fileId);
+      objToReturn.o = o;
+    } catch (error) {
+      objToReturn.error = error;
+    }
+    res.render("getCurrentMedia", {
+      data: objToReturn
+    });
   } catch (error) {
     console.log('Unable to get current media id');
     res.send('error');
@@ -86,8 +101,12 @@ router.get('/getCurrentMedia', async function (req, res, next) {
 router.get('/getCurrentMediaStream', async function (req, res, next) {
   try {
     var fileId = await getRedisValue('CURRENT_MEDIA_ID');
-    var o = await gddirect.getMediaLink(fileId);
-    res.redirect(o.src)
+    if (fileId.startsWith('http')) {  //if it's a http link, then it means it's a direct link and not a google drive id
+      res.redirect(fileId);
+    } else {
+      var o = await gddirect.getMediaLink(fileId);
+      res.redirect(o.src)
+    }
   } catch (error) {
     console.log('Unable to get the current media id');
     res.send('error');
