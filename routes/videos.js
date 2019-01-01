@@ -126,6 +126,7 @@ async function getRedisValue(key) {
   var client = getRedisClient();
   return new Promise((resolve, reject) => {
     client.get(key, function (err, value) {
+      client.quit();
       if (err) {
         reject(err);
       } else {
@@ -139,6 +140,7 @@ async function setRedisValue(key, value) {
   var client = getRedisClient();
   return new Promise((resolve, reject) => {
     client.set(key, value, function (err) {
+      client.quit();
       if (err) {
         reject(err);
       } else {
