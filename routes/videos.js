@@ -98,6 +98,33 @@ router.get('/getCurrentMedia', async function (req, res, next) {
   }
 });
 
+router.post('/setM3U', async function (req, res, next) {
+  var fileId = req.body.m3u;
+  try {
+    await setRedisValue('M3U_CONTENT', fileId);
+
+    res.render("getm3ucontent", {
+      m3ucontent: fileId
+    });
+  } catch (error) {
+    console.log(JSON.stringify(error));
+    res.send('An error occurred... ' + JSON.stringify(error));
+  }
+})
+
+router.get('/getM3U', async function (req, res, next) {
+  try {
+    var fileId = await getRedisValue('M3U_CONTENT');
+    res.render("getm3ucontent", {
+      m3ucontent: fileId
+    });
+  } catch (error) {
+    console.log('Unable to get m3u content');
+    res.send('error' + JSON.stringify(error));
+  }
+});
+
+
 router.get('/getCurrentMediaStream', async function (req, res, next) {
   try {
     var fileId = await getRedisValue('CURRENT_MEDIA_ID');
